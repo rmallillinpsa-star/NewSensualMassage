@@ -11,8 +11,8 @@
   --shadow: 0 16px 34px rgba(181, 15, 42, 0.1);
   --radius-panel: 24px;
   --space-section: 2.2rem;
-  --font-display: "Arial Rounded MT Bold", "Arial Rounded MT", Arial, sans-serif;
-  --font-body: "Arial Rounded MT Bold", "Arial Rounded MT", Arial, sans-serif;
+  --font-display: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --font-body: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 * {
