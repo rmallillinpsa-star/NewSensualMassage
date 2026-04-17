@@ -267,6 +267,36 @@ async function loadAdminData() {
   try {
     const result = await postAdminAction({ action: "adminGetData" });
     adminState.data = result.data || {};
+
+    // Process branch mappings
+    const branches = adminState.data.branches || [];
+    const branchNameById = new Map();
+    const branchIdByName = new Map();
+    branches.forEach(branch => {
+      branchNameById.set(branch.id, branch.name);
+      branchIdByName.set(branch.name, branch.id);
+    });
+    adminState.branchIdByName = branchIdByName;
+
+    // Map branch_id to branch for display
+    ['staff', 'slides', 'services', 'rates', 'promos', 'home_sections'].forEach(sheetKey => {
+      if (adminState.data[sheetKey]) {
+        adminState.data[sheetKey] = adminState.data[sheetKey].map(row => ({
+          ...row,
+          branch: row.branch_id || '',
+        }));
+      }
+    });
+
+    // Populate branch select
+    const branchSelect = document.getElementById("admin-branch-select");
+    if (branchSelect) {
+      branchSelect.innerHTML = '<option value="">All branches</option>' + branches.map(branch => `<option value="${escapeHtml(branch.name)}">${escapeHtml(branch.name)}</option>`).join('');
+      branchSelect.addEventListener('change', () => {
+        renderAdminPanels();
+      });
+    }
+
     renderAdminTabs();
     renderAdminPanels();
     showAdminApp(true);
@@ -321,7 +351,13 @@ function renderAdminPanels() {
 
 function renderAdminPanel(sheetKey, isActive) {
   const definition = adminSheetDefinitions[sheetKey];
-  const rows = Array.isArray(adminState.data[sheetKey]) ? adminState.data[sheetKey] : [];
+  let rows = Array.isArray(adminState.data[sheetKey]) ? adminState.data[sheetKey] : [];
+  if (['staff', 'slides', 'services', 'rates', 'promos', 'home_sections'].includes(sheetKey)) {
+    const selectedBranch = document.getElementById("admin-branch-select")?.value || '';
+    if (selectedBranch) {
+      rows = rows.filter(row => row.branch === adminState.branchIdByName.get(selectedBranch));
+    }
+  }
   const emptyMessage = `No ${definition.label.toLowerCase()} yet. Click Add ${definition.entryLabel}.`;
 
   return `
@@ -425,6 +461,19 @@ function renderAdminField(field, value) {
         <textarea data-field="${field.key}" rows="${textareaRows}" placeholder="${escapeAttribute(field.placeholder || "")}" ${field.readOnly ? "readonly" : ""}>${escapeHtml(normalizedValue)}</textarea>
         ${helperText}
         ${uploadControl}
+      </label>
+    `;
+  }
+
+  if (field.key === "branch") {
+    const branches = adminState.data.branches || [];
+    const optionsHtml = branches.map(branch => `<option value="${escapeAttribute(branch.id)}"${branch.id === normalizedValue ? ' selected' : ''}>${escapeHtml(branch.name)}</option>`).join('');
+    return `
+      <label class="admin-field">
+        <span>${escapeHtml(field.label)}</span>
+        <select data-field="${field.key}">
+          ${optionsHtml}
+        </select>
       </label>
     `;
   }
