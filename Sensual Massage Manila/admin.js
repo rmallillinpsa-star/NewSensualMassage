@@ -316,6 +316,7 @@ function renderAdminPanels() {
   bindStaffPreviewInputs();
   bindBranchPreviewInputs();
   bindRateKeyInputs();
+  bindUploadInputs();
 }
 
 function renderAdminPanel(sheetKey, isActive) {
@@ -405,6 +406,7 @@ function renderBranchAdminPreview(row) {
 
 function renderAdminField(field, value) {
   const normalizedValue = value ?? field.defaultValue ?? "";
+  const uploadControl = renderUploadControl(field);
 
   if (field.type === "textarea") {
     const textareaRows = field.key === "image_urls" ? 8 : 4;
@@ -417,6 +419,7 @@ function renderAdminField(field, value) {
         <span>${escapeHtml(field.label)}</span>
         <textarea data-field="${field.key}" rows="${textareaRows}" placeholder="${escapeAttribute(field.placeholder || "")}" ${field.readOnly ? "readonly" : ""}>${escapeHtml(normalizedValue)}</textarea>
         ${helperText}
+        ${uploadControl}
       </label>
     `;
   }
@@ -438,8 +441,31 @@ function renderAdminField(field, value) {
     <label class="admin-field">
       <span>${escapeHtml(field.label)}</span>
       <input type="${escapeAttribute(field.type || "text")}" data-field="${field.key}" value="${escapeAttribute(normalizedValue)}" placeholder="${escapeAttribute(field.placeholder || "")}" ${field.readOnly ? "readonly" : ""}>
+      ${uploadControl}
     </label>
   `;
+}
+
+function renderUploadControl(field) {
+  if (!isUploadField(field.key) || field.readOnly) {
+    return "";
+  }
+
+  const isMultiple = field.key === "image_urls";
+  const helperText = isMultiple
+    ? "Upload up to 10 images from this device."
+    : "Upload an image from this device.";
+
+  return `
+    <div class="admin-upload-control">
+      <input type="file" accept="image/*"${isMultiple ? " multiple" : ""} data-upload-field="${field.key}">
+      <small class="admin-field-hint">${helperText}</small>
+    </div>
+  `;
+}
+
+function isUploadField(fieldKey) {
+  return fieldKey === "logo_url" || fieldKey === "image_url" || fieldKey === "image_urls";
 }
 
 function activateAdminPanel(sheetKey) {
@@ -466,6 +492,7 @@ function addAdminRow(sheetKey) {
   bindStaffPreviewInputs();
   bindBranchPreviewInputs();
   bindRateKeyInputs();
+  bindUploadInputs();
 }
 
 function bindDeleteButtons() {
@@ -635,6 +662,122 @@ function bindRateKeyInputs() {
 
     updateKey();
   });
+}
+
+function bindUploadInputs() {
+  document.querySelectorAll("[data-upload-field]").forEach((input) => {
+    if (input.dataset.uploadBound === "true") {
+      return;
+    }
+
+    input.dataset.uploadBound = "true";
+    input.addEventListener("change", handleAdminFileUpload);
+  });
+}
+
+async function handleAdminFileUpload(event) {
+  const input = event.currentTarget;
+  const files = Array.from(input.files || []);
+  const fieldKey = String(input.dataset.uploadField || "").trim();
+  const record = input.closest("[data-admin-record]");
+  const panel = input.closest("[data-admin-panel]");
+  const sheetKey = String(panel?.dataset.adminPanel || "").trim();
+  const status = sheetKey ? document.querySelector(`[data-admin-status="${sheetKey}"]`) : null;
+
+  if (!files.length || !fieldKey || !record || !sheetKey) {
+    return;
+  }
+
+  try {
+    if (status) {
+      status.textContent = "Uploading image...";
+      status.classList.remove("is-error", "is-success");
+    }
+
+    const uploadedUrls = await uploadFilesToStorage(files, sheetKey, fieldKey);
+    const targetInput = record.querySelector(`[data-field="${fieldKey}"]`);
+
+    if (!targetInput) {
+      throw new Error("Image field not found.");
+    }
+
+    if (fieldKey === "image_urls") {
+      targetInput.value = uploadedUrls.join("\n");
+    } else {
+      targetInput.value = uploadedUrls[0] || "";
+    }
+
+    if (fieldKey === "logo_url") {
+      const fileIdInput = record.querySelector('[data-field="logo_file_id"]');
+      if (fileIdInput) {
+        fileIdInput.value = "";
+      }
+    }
+
+    targetInput.dispatchEvent(new Event("input", { bubbles: true }));
+    targetInput.dispatchEvent(new Event("blur", { bubbles: true }));
+    input.value = "";
+
+    if (status) {
+      status.textContent = "Image uploaded successfully.";
+      status.classList.add("is-success");
+    }
+  } catch (error) {
+    if (status) {
+      status.textContent = error.message || "Image upload failed.";
+      status.classList.add("is-error");
+    }
+  }
+}
+
+async function uploadFilesToStorage(files, sheetKey, fieldKey) {
+  const client = initializeSupabaseClient();
+
+  if (!client) {
+    throw new Error("Supabase is not configured for uploads.");
+  }
+
+  const safeFiles = files.slice(0, fieldKey === "image_urls" ? 10 : 1);
+  const uploadedUrls = [];
+
+  for (const file of safeFiles) {
+    const extension = getFileExtension(file.name);
+    const safeName = sanitizeFileName(file.name || "upload");
+    const filePath = `admin/${sheetKey}/${fieldKey}/${Date.now()}-${createRandomId()}-${safeName}${extension}`;
+
+    const { error } = await client.storage.from("site-media").upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: false
+    });
+
+    if (error) {
+      throw new Error(error.message || "Upload failed.");
+    }
+
+    const { data } = client.storage.from("site-media").getPublicUrl(filePath);
+    uploadedUrls.push(String(data?.publicUrl || "").trim());
+  }
+
+  return uploadedUrls.filter(Boolean);
+}
+
+function sanitizeFileName(fileName) {
+  const trimmedName = String(fileName || "").trim().replace(/\.[^.]+$/, "");
+  const normalized = trimmedName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || "image";
+}
+
+function getFileExtension(fileName) {
+  const match = String(fileName || "").trim().match(/(\.[a-z0-9]+)$/i);
+  return match ? match[1].toLowerCase() : "";
+}
+
+function createRandomId() {
+  return Math.random().toString(36).slice(2, 10);
 }
 
 async function saveAdminSheet(sheetKey) {
