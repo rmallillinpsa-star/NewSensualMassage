@@ -1629,6 +1629,25 @@ function buildDriveThumbnailUrl(fileId) {
   return normalized ? `https://drive.google.com/thumbnail?id=${encodeURIComponent(normalized)}&sz=w1200` : "";
 }
 
+function extractDriveFileId(value) {
+  const trimmedValue = String(value || "").trim();
+  if (!trimmedValue) {
+    return "";
+  }
+
+  const driveFileMatch = trimmedValue.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+  if (driveFileMatch) {
+    return driveFileMatch[1];
+  }
+
+  const driveOpenMatch = trimmedValue.match(/[?&]id=([^&]+)/i);
+  if (trimmedValue.includes("drive.google.com") && driveOpenMatch) {
+    return driveOpenMatch[1];
+  }
+
+  return "";
+}
+
 function buildDriveViewUrl(fileId) {
   const normalized = String(fileId || "").trim();
   return normalized ? `https://drive.google.com/uc?export=view&id=${encodeURIComponent(normalized)}` : "";
