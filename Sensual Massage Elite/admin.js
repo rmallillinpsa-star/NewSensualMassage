@@ -962,14 +962,15 @@ async function postAdminAction(payload) {
     "Content-Type": "application/json"
   };
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  const requestPayload = {
+    ...payload,
+    token: token
+  };
 
   const response = await fetch(adminApiBaseUrl, {
     method: "POST",
     headers,
-    body: JSON.stringify(payload)
+    body: JSON.stringify(requestPayload)
   });
 
   const result = await response.json();
