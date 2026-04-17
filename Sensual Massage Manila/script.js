@@ -745,18 +745,11 @@ function renderStaffGroups(staffRows, branches) {
   }
 
   if (selectedBranchName) {
-    const femaleStaff = genderFilter === "male"
-      ? []
-      : filteredStaff.filter((staff) => matchesGender(staff.gender, "female"));
-    const maleStaff = genderFilter === "female"
-      ? []
-      : filteredStaff.filter((staff) => matchesGender(staff.gender, "male"));
-    const sections = [
-      femaleStaff.length ? renderStaffCard("Female Therapists", femaleStaff) : "",
-      maleStaff.length ? renderStaffCard("Male Therapists", maleStaff) : ""
-    ].filter(Boolean).join("");
-
-    therapistGrid.innerHTML = sections || `<div class="service-note"><p>No ${genderFilter || ""} therapists available yet.</p></div>`;
+    therapistGrid.innerHTML = `
+      <div class="therapist-list therapist-list-grid">
+        ${filteredStaff.map((staff) => renderTherapistProfile(staff)).join("")}
+      </div>
+    `;
     return;
   }
 
