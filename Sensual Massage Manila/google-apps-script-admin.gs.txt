@@ -176,8 +176,6 @@ function adminSaveSheet(sheetName, rows) {
     throw new Error("Saving that sheet is not allowed.");
   }
 
-  ensureSchema();
-
   const sheet = getOrCreateSheet(sheetName);
   const headers = getHeadersForSheet(sheetName);
   const normalizedRows = Array.isArray(rows) ? rows : [];
