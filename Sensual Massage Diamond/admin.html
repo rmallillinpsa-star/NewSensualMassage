@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sensual Massage Manila | Admin</title>
+  <title>Sensual Massage Diamond | Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -17,19 +17,19 @@
     <div class="container nav-wrap">
       <a class="brand" href="index.html">
         <span class="brand-logo-frame">
-          <img class="brand-logo" src="assets/Sensual Massage Manila.png" alt="Sensual Massage Manila logo">
+          <img class="brand-logo" src="assets/Diamond.png" alt="Sensual Massage Diamond logo">
         </span>
         <span class="brand-copy">
-          <strong class="notranslate" translate="no" data-business-name>Sensual Massage Manila</strong>
+          <strong class="notranslate" translate="no" data-business-name>Sensual Massage Diamond</strong>
           <small class="notranslate" translate="no">Admin Panel</small>
         </span>
       </a>
       <div class="nav-actions">
         <nav class="site-nav" aria-label="Primary navigation">
-          <a href="index.html">Home</a>
-          <a href="services.html">Services</a>
-          <a href="booking.html">Booking</a>
-          <a href="contact.html">Contact Us</a>
+          <a href="index_diamond.html">Home</a>
+          <a href="services_diamond.html">Services</a>
+          <a href="booking_diamond.html">Booking</a>
+          <a href="contact_diamond.html">Contact Us</a>
           <a class="active" href="admin.html">Admin</a>
         </nav>
         <div class="translate-slot" data-google-translate aria-label="Translate website"></div>
@@ -44,7 +44,7 @@
         <h1>Manage the website content from one private dashboard.</h1>
         <p class="lead compact">
           Log in to add, edit, and delete branches, services, rates, staff, promos,
-          slides, home content, bookings, settings, and admin users stored in Google Sheets.
+          slides, home content, bookings, and settings stored in the shared Supabase database.
         </p>
       </div>
     </section>
@@ -55,8 +55,8 @@
           <p class="contact-label">Secure Login</p>
           <h2>Admin Access</h2>
           <label>
-            Username
-            <input type="text" name="username" placeholder="Enter username" required>
+            Email
+            <input type="email" name="email" placeholder="Enter admin email" required>
           </label>
           <label>
             Password
@@ -89,14 +89,15 @@
 
   <footer class="site-footer">
     <div class="container footer-wrap">
-      <p class="notranslate" translate="no" data-business-name>Sensual Massage Manila</p>
+      <p class="notranslate" translate="no" data-business-name>Sensual Massage Diamond</p>
       <div class="footer-links">
-        <a href="index.html">Website</a>
-        <a href="booking.html">Bookings</a>
+        <a href="index_diamond.html">Website</a>
+        <a href="booking_diamond.html">Bookings</a>
       </div>
     </div>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js?v=20260414r"></script>
   <script src="script.js?v=20260414r"></script>
   <script src="admin.js?v=20260414r"></script>

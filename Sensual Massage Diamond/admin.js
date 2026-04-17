@@ -1,5 +1,9 @@
 const adminConfig = window.SITE_CONFIG || {};
 const adminApiBaseUrl = adminConfig.apiBaseUrl || "";
+const adminSupabaseUrl = adminConfig.supabaseUrl || "";
+const adminSupabaseAnonKey = adminConfig.supabaseAnonKey || "";
+const adminSessionStorageKey = "supabaseAdminSession";
+let supabaseClient = null;
 
 const adminSheetDefinitions = {
   branches: {
@@ -15,7 +19,7 @@ const adminSheetDefinitions = {
       { key: "wechat_id", label: "WeChat ID", placeholder: "your_wechat_id" },
       { key: "telegram_username", label: "Telegram Username", placeholder: "yourtelegram" },
       { key: "map_link", label: "Google Maps Link", placeholder: "https://maps.google.com/..." },
-      { key: "logo_url", label: "Branch Photo URL", placeholder: "https://drive.google.com/file/d/FILE_ID/view?usp=sharing" },
+      { key: "logo_url", label: "Branch Photo", placeholder: "Paste image URL or upload from device" },
       { key: "logo_file_id", label: "Branch Photo File ID", placeholder: "Auto-filled after save", readOnly: true },
       { key: "active", label: "Show on website", type: "select", options: ["TRUE", "FALSE"], defaultValue: "TRUE" }
     ]
@@ -46,7 +50,7 @@ const adminSheetDefinitions = {
       { key: "age", label: "Age", type: "number", placeholder: "21" },
       { key: "height", label: "Height", placeholder: "Example: 165 cm" },
       { key: "weight", label: "Weight", placeholder: "Example: 55 kg" },
-      { key: "image_urls", label: "Profile Picture URLs", type: "textarea", placeholder: "Add 1 to 10 image URLs, one per line", required: true },
+      { key: "image_urls", label: "Profile Pictures", type: "textarea", placeholder: "Paste image URLs or upload from device", required: true },
       { key: "bio", label: "Short Bio", type: "textarea", placeholder: "Short introduction for the therapist" },
       { key: "active", label: "Show on website", type: "select", options: ["TRUE", "FALSE"], defaultValue: "TRUE" }
     ]
@@ -69,7 +73,7 @@ const adminSheetDefinitions = {
       { key: "branch", label: "Branch", type: "select", optionsSource: "branches", allowBlank: true, blankLabel: "All branches" },
       { key: "title", label: "Slide Title", placeholder: "Optional title" },
       { key: "subtitle", label: "Subtitle", type: "textarea", placeholder: "Optional subtitle" },
-      { key: "image_url", label: "Image URL", placeholder: "https://.../image.jpg", required: true },
+      { key: "image_url", label: "Slide Image", placeholder: "Paste image URL or upload from device", required: true },
       { key: "alt_text", label: "Image Alt Text", placeholder: "Describe the image" },
       { key: "button_text", label: "Button Text", placeholder: "Book Now" },
       { key: "button_link", label: "Button Link", placeholder: "booking.html" },
@@ -84,7 +88,7 @@ const adminSheetDefinitions = {
       { key: "section_key", label: "Section Key", placeholder: "Example: booking_block", required: true },
       { key: "title", label: "Title", placeholder: "Section title", required: true },
       { key: "description", label: "Description", type: "textarea", placeholder: "Section description", required: true },
-      { key: "image_url", label: "Image URL", placeholder: "Optional image URL" },
+      { key: "image_url", label: "Section Image", placeholder: "Paste image URL or upload from device" },
       { key: "button_text", label: "Button Text", placeholder: "Book Now" },
       { key: "button_link", label: "Button Link", placeholder: "booking.html" },
       { key: "active", label: "Show on website", type: "select", options: ["TRUE", "FALSE"], defaultValue: "TRUE" }
@@ -133,20 +137,11 @@ const adminSheetDefinitions = {
       { key: "status", label: "Status", type: "select", options: ["New", "Confirmed", "Completed", "Cancelled"], defaultValue: "New" }
     ]
   },
-  admin_users: {
-    label: "Admin Users",
-    entryLabel: "Admin User",
-    fields: [
-      { key: "username", label: "Username", placeholder: "Admin username", required: true },
-      { key: "password", label: "Password", placeholder: "Admin password", required: true },
-      { key: "active", label: "Can log in", type: "select", options: ["TRUE", "FALSE"], defaultValue: "TRUE" }
-    ]
-  }
 };
 
 const adminState = { token: "", data: {} };
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const loginForm = document.querySelector("[data-admin-login-form]");
   const refreshButton = document.querySelector("[data-admin-refresh]");
   const logoutButton = document.querySelector("[data-admin-logout]");
@@ -155,6 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  initializeSupabaseClient();
   loginForm.addEventListener("submit", handleAdminLogin);
 
   if (refreshButton) {
@@ -165,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
     logoutButton.addEventListener("click", logoutAdmin);
   }
 
-  const savedToken = sessionStorage.getItem("adminToken");
+  const savedToken = await restoreAdminSession();
 
   if (savedToken) {
     adminState.token = savedToken;
@@ -173,6 +169,44 @@ document.addEventListener("DOMContentLoaded", () => {
     loadAdminData();
   }
 });
+
+function initializeSupabaseClient() {
+  if (supabaseClient) {
+    return supabaseClient;
+  }
+
+  if (!adminSupabaseUrl || !adminSupabaseAnonKey || !window.supabase || !window.supabase.createClient) {
+    return null;
+  }
+
+  supabaseClient = window.supabase.createClient(adminSupabaseUrl, adminSupabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      storageKey: adminSessionStorageKey
+    }
+  });
+
+  return supabaseClient;
+}
+
+async function restoreAdminSession() {
+  const client = initializeSupabaseClient();
+
+  if (!client) {
+    return "";
+  }
+
+  const { data, error } = await client.auth.getSession();
+  if (error) {
+    console.warn("Failed to restore admin session.", error);
+    return "";
+  }
+
+  const accessToken = String(data?.session?.access_token || "").trim();
+  adminState.token = accessToken;
+  return accessToken;
+}
 
 async function handleAdminLogin(event) {
   event.preventDefault();
@@ -187,14 +221,22 @@ async function handleAdminLogin(event) {
   }
 
   try {
-    const result = await postAdminAction({
-      action: "adminLogin",
-      username: payload.username,
-      password: payload.password
+    const client = initializeSupabaseClient();
+
+    if (!client) {
+      throw new Error("Supabase admin login is not configured yet.");
+    }
+
+    const { data, error } = await client.auth.signInWithPassword({
+      email: String(payload.email || "").trim(),
+      password: String(payload.password || "")
     });
 
-    adminState.token = result.data.token;
-    sessionStorage.setItem("adminToken", adminState.token);
+    if (error || !data.session) {
+      throw new Error(error?.message || "Login failed.");
+    }
+
+    adminState.token = data.session.access_token || "";
     form.reset();
 
     if (status) {
@@ -223,7 +265,7 @@ async function loadAdminData() {
   panels.innerHTML = "<div class='contact-card'><p>Loading admin data...</p></div>";
 
   try {
-    const result = await postAdminAction({ action: "adminGetData", token });
+    const result = await postAdminAction({ action: "adminGetData" });
     adminState.data = result.data || {};
     renderAdminTabs();
     renderAdminPanels();
@@ -274,6 +316,7 @@ function renderAdminPanels() {
   bindStaffPreviewInputs();
   bindBranchPreviewInputs();
   bindRateKeyInputs();
+  bindUploadInputs();
 }
 
 function renderAdminPanel(sheetKey, isActive) {
@@ -325,10 +368,14 @@ function renderAdminRecord(sheetKey, row, index) {
 
 function renderStaffAdminPreview(row) {
   const name = String(row.name || "").trim() || "Therapist Preview";
-  const imageUrl = getFirstStaffImage(row);
+  const imageUrls = normalizeStaffImageList(String(row.image_urls || ""));
+  const imageUrl = imageUrls[0] || "";
   const visual = imageUrl
     ? `<img class="admin-staff-preview-image" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(name)}" data-staff-preview-image>`
     : `<div class="admin-staff-preview-placeholder" data-staff-preview-image>${escapeHtml(getInitials(name))}</div>`;
+  const gallery = imageUrls.length
+    ? `<div class="admin-staff-preview-gallery">${imageUrls.map((url, index) => `<img class="admin-staff-preview-thumb" src="${escapeAttribute(url)}" alt="${escapeAttribute(name)} photo ${index + 1}">`).join("")}</div>`
+    : "";
 
   return `
     <div class="admin-staff-preview">
@@ -336,6 +383,7 @@ function renderStaffAdminPreview(row) {
       <div class="admin-staff-preview-copy">
         <p class="contact-label">Profile Picture</p>
         <strong data-staff-preview-name>${escapeHtml(name)}</strong>
+        ${gallery}
       </div>
     </div>
   `;
@@ -363,6 +411,7 @@ function renderBranchAdminPreview(row) {
 
 function renderAdminField(field, value) {
   const normalizedValue = value ?? field.defaultValue ?? "";
+  const uploadControl = renderUploadControl(field);
 
   if (field.type === "textarea") {
     const textareaRows = field.key === "image_urls" ? 8 : 4;
@@ -375,6 +424,7 @@ function renderAdminField(field, value) {
         <span>${escapeHtml(field.label)}</span>
         <textarea data-field="${field.key}" rows="${textareaRows}" placeholder="${escapeAttribute(field.placeholder || "")}" ${field.readOnly ? "readonly" : ""}>${escapeHtml(normalizedValue)}</textarea>
         ${helperText}
+        ${uploadControl}
       </label>
     `;
   }
@@ -396,8 +446,34 @@ function renderAdminField(field, value) {
     <label class="admin-field">
       <span>${escapeHtml(field.label)}</span>
       <input type="${escapeAttribute(field.type || "text")}" data-field="${field.key}" value="${escapeAttribute(normalizedValue)}" placeholder="${escapeAttribute(field.placeholder || "")}" ${field.readOnly ? "readonly" : ""}>
+      ${uploadControl}
     </label>
   `;
+}
+
+function renderUploadControl(field) {
+  if (!isUploadField(field.key) || field.readOnly) {
+    return "";
+  }
+
+  const isMultiple = field.key === "image_urls";
+  const helperText = isMultiple
+    ? "Upload up to 10 images from this device."
+    : "Upload an image from this device.";
+
+  return `
+    <div class="admin-upload-control">
+      <label class="admin-upload-button">
+        <span>Upload From Device</span>
+        <input type="file" accept="image/*"${isMultiple ? " multiple" : ""} data-upload-field="${field.key}">
+      </label>
+      <small class="admin-field-hint">${helperText}</small>
+    </div>
+  `;
+}
+
+function isUploadField(fieldKey) {
+  return fieldKey === "logo_url" || fieldKey === "image_url" || fieldKey === "image_urls";
 }
 
 function activateAdminPanel(sheetKey) {
@@ -424,6 +500,7 @@ function addAdminRow(sheetKey) {
   bindStaffPreviewInputs();
   bindBranchPreviewInputs();
   bindRateKeyInputs();
+  bindUploadInputs();
 }
 
 function bindDeleteButtons() {
@@ -459,6 +536,11 @@ function bindStaffPreviewInputs() {
       const imageUrl = imageUrls[0] || "";
       const nameNode = record.querySelector("[data-staff-preview-name]");
       let imageNode = record.querySelector("[data-staff-preview-image]");
+      const copyNode = record.querySelector(".admin-staff-preview-copy");
+      const galleryMarkup = imageUrls.length
+        ? `<div class="admin-staff-preview-gallery">${imageUrls.map((url, index) => `<img class="admin-staff-preview-thumb" src="${escapeAttribute(url)}" alt="${escapeAttribute(name)} photo ${index + 1}">`).join("")}</div>`
+        : "";
+      const existingGallery = record.querySelector(".admin-staff-preview-gallery");
 
       if (imageInput) {
         imageInput.value = imageUrls.join("\n");
@@ -470,6 +552,16 @@ function bindStaffPreviewInputs() {
 
       if (!imageNode) {
         return;
+      }
+
+      if (galleryMarkup) {
+        if (existingGallery) {
+          existingGallery.outerHTML = galleryMarkup;
+        } else {
+          copyNode?.insertAdjacentHTML("beforeend", galleryMarkup);
+        }
+      } else if (existingGallery) {
+        existingGallery.remove();
       }
 
       if (imageUrl) {
@@ -595,6 +687,123 @@ function bindRateKeyInputs() {
   });
 }
 
+function bindUploadInputs() {
+  document.querySelectorAll("[data-upload-field]").forEach((input) => {
+    if (input.dataset.uploadBound === "true") {
+      return;
+    }
+
+    input.dataset.uploadBound = "true";
+    input.addEventListener("change", handleAdminFileUpload);
+  });
+}
+
+async function handleAdminFileUpload(event) {
+  const input = event.currentTarget;
+  const files = Array.from(input.files || []);
+  const fieldKey = String(input.dataset.uploadField || "").trim();
+  const record = input.closest("[data-admin-record]");
+  const panel = input.closest("[data-admin-panel]");
+  const sheetKey = String(panel?.dataset.adminPanel || "").trim();
+  const status = sheetKey ? document.querySelector(`[data-admin-status="${sheetKey}"]`) : null;
+
+  if (!files.length || !fieldKey || !record || !sheetKey) {
+    return;
+  }
+
+  try {
+    if (status) {
+      status.textContent = "Uploading image...";
+      status.classList.remove("is-error", "is-success");
+    }
+
+    const uploadedUrls = await uploadFilesToStorage(files, sheetKey, fieldKey);
+    const targetInput = record.querySelector(`[data-field="${fieldKey}"]`);
+
+    if (!targetInput) {
+      throw new Error("Image field not found.");
+    }
+
+    if (fieldKey === "image_urls") {
+      const existingUrls = normalizeStaffImageList(String(targetInput.value || ""));
+      targetInput.value = [...existingUrls, ...uploadedUrls].slice(0, 10).join("\n");
+    } else {
+      targetInput.value = uploadedUrls[0] || "";
+    }
+
+    if (fieldKey === "logo_url") {
+      const fileIdInput = record.querySelector('[data-field="logo_file_id"]');
+      if (fileIdInput) {
+        fileIdInput.value = "";
+      }
+    }
+
+    targetInput.dispatchEvent(new Event("input", { bubbles: true }));
+    targetInput.dispatchEvent(new Event("blur", { bubbles: true }));
+    input.value = "";
+
+    if (status) {
+      status.textContent = "Image uploaded successfully.";
+      status.classList.add("is-success");
+    }
+  } catch (error) {
+    if (status) {
+      status.textContent = error.message || "Image upload failed.";
+      status.classList.add("is-error");
+    }
+  }
+}
+
+async function uploadFilesToStorage(files, sheetKey, fieldKey) {
+  const client = initializeSupabaseClient();
+
+  if (!client) {
+    throw new Error("Supabase is not configured for uploads.");
+  }
+
+  const safeFiles = files.slice(0, fieldKey === "image_urls" ? 10 : 1);
+  const uploadedUrls = [];
+
+  for (const file of safeFiles) {
+    const extension = getFileExtension(file.name);
+    const safeName = sanitizeFileName(file.name || "upload");
+    const filePath = `admin/${sheetKey}/${fieldKey}/${Date.now()}-${createRandomId()}-${safeName}${extension}`;
+
+    const { error } = await client.storage.from("site-media").upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: false
+    });
+
+    if (error) {
+      throw new Error(error.message || "Upload failed.");
+    }
+
+    const { data } = client.storage.from("site-media").getPublicUrl(filePath);
+    uploadedUrls.push(String(data?.publicUrl || "").trim());
+  }
+
+  return uploadedUrls.filter(Boolean);
+}
+
+function sanitizeFileName(fileName) {
+  const trimmedName = String(fileName || "").trim().replace(/\.[^.]+$/, "");
+  const normalized = trimmedName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || "image";
+}
+
+function getFileExtension(fileName) {
+  const match = String(fileName || "").trim().match(/(\.[a-z0-9]+)$/i);
+  return match ? match[1].toLowerCase() : "";
+}
+
+function createRandomId() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
 async function saveAdminSheet(sheetKey) {
   const token = getAdminToken();
   const list = document.querySelector(`[data-admin-record-list="${sheetKey}"]`);
@@ -652,7 +861,6 @@ async function saveAdminSheet(sheetKey) {
   try {
     const result = await postAdminAction({
       action: "adminSaveSheet",
-      token,
       sheetName: sheetKey,
       rows
     });
@@ -733,12 +941,15 @@ function showAdminApp(isVisible) {
 function logoutAdmin() {
   adminState.token = "";
   adminState.data = {};
-  sessionStorage.removeItem("adminToken");
+  const client = initializeSupabaseClient();
+  if (client) {
+    client.auth.signOut();
+  }
   showAdminApp(false);
 }
 
 function getAdminToken() {
-  return adminState.token || sessionStorage.getItem("adminToken") || "";
+  return adminState.token || "";
 }
 
 async function postAdminAction(payload) {
@@ -746,11 +957,18 @@ async function postAdminAction(payload) {
     throw new Error("Admin API URL is missing.");
   }
 
+  const token = getAdminToken();
+  const headers = {
+    "Content-Type": "application/json"
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   const response = await fetch(adminApiBaseUrl, {
     method: "POST",
-    headers: {
-      "Content-Type": "text/plain;charset=utf-8"
-    },
+    headers,
     body: JSON.stringify(payload)
   });
 
