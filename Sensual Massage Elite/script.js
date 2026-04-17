@@ -1088,7 +1088,13 @@ function openWhatsappBooking(bookingData) {
 
 function getActiveRows(rows) {
   return (rows || [])
-    .filter((row) => String(row.active || "TRUE").toUpperCase() === "TRUE")
+    .filter((row) => {
+      if (typeof row?.active === "boolean") {
+        return row.active;
+      }
+
+      return String(row?.active ?? "TRUE").trim().toUpperCase() === "TRUE";
+    })
     .sort((a, b) => Number(a.__rowIndex || 0) - Number(b.__rowIndex || 0));
 }
 

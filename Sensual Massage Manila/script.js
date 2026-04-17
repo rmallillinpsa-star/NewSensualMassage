@@ -224,6 +224,11 @@ function getBranchPagePath(baseName) {
   return `${baseName}_${selectedBranchSlug}.html`;
 }
 
+function getCurrentPagePath() {
+  const pathname = String(window.location.pathname || "").split("/").pop().trim();
+  return pathname || getBranchPagePath("index");
+}
+
 function applyGlobalConfig(config) {
   document.querySelectorAll("[data-business-name]").forEach((node) => {
     node.classList.add("notranslate");
@@ -812,7 +817,8 @@ function renderTherapistProfile(staff) {
   if (genderFilter) {
     profileParams.set("gender", genderFilter);
   }
-  const profileUrl = `${getBranchPagePath("therapist")}?${profileParams.toString()}`;
+  const profilePagePath = genderFilter ? getCurrentPagePath() : getBranchPagePath("therapist");
+  const profileUrl = `${profilePagePath}?${profileParams.toString()}`;
 
   return `
     <a class="therapist-profile therapist-profile-grid" href="${escapeAttribute(profileUrl)}">
@@ -1082,7 +1088,13 @@ function openWhatsappBooking(bookingData) {
 
 function getActiveRows(rows) {
   return (rows || [])
-    .filter((row) => String(row.active || "TRUE").toUpperCase() === "TRUE")
+    .filter((row) => {
+      if (typeof row?.active === "boolean") {
+        return row.active;
+      }
+
+      return String(row?.active ?? "TRUE").trim().toUpperCase() === "TRUE";
+    })
     .sort((a, b) => Number(a.__rowIndex || 0) - Number(b.__rowIndex || 0));
 }
 

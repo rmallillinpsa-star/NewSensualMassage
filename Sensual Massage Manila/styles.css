@@ -13,6 +13,71 @@
   --space-section: 2.2rem;
 }
 
+body,
+button,
+input,
+select,
+textarea {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.brand strong {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.brand small {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+}
+
+h1,
+h2,
+h3,
+.section-heading h2,
+.page-hero h1,
+.admin-login-card h2,
+.therapist-body h3,
+.therapist-profile-grid .therapist-body h3,
+body[data-selected-branch] .therapist-profile-grid .therapist-body h3 {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+h1,
+.page-hero h1 {
+  font-size: 1.9rem;
+}
+
+h2,
+.section-heading h2,
+.admin-login-card h2 {
+  font-size: 1.45rem;
+}
+
+h3,
+.therapist-body h3,
+.therapist-profile-grid .therapist-body h3,
+body[data-selected-branch] .therapist-profile-grid .therapist-body h3 {
+  font-size: 1rem;
+}
+
+.lead,
+.lead.compact,
+.service-note p,
+.therapist-bio,
+.therapist-meta,
+.site-nav a,
+.button {
+  font-size: 0.98rem;
+}
+
+.therapist-avatar-placeholder {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
 * {
   box-sizing: border-box;
 }

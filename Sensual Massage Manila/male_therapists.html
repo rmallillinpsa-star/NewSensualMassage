@@ -40,16 +40,33 @@
     <div class="container header-branch-strip" data-header-branch-phones></div>
   </header>
 
-  <main class="page-shell">
+  <main class="page-shell" data-therapist-detail-page>
     <section class="page-hero therapists-page-hero">
       <div class="container narrow">
         <p class="eyebrow">Therapists</p>
-        <h1>Male therapist profiles</h1>
-        <p class="lead compact">Browse the available male therapist profiles for Sensual Massage Manila.</p>
+        <h1 data-therapist-detail-title>Male therapist profiles</h1>
+        <p class="lead compact" data-therapist-detail-subtitle>Browse the available male therapist profiles for Sensual Massage Manila.</p>
       </div>
     </section>
 
-    <section class="section therapist-section therapist-section-page">
+    <section class="section hidden" data-therapist-detail-section>
+      <div class="container">
+        <div class="profile-page-layout">
+          <div class="profile-page-gallery" data-therapist-detail-gallery></div>
+          <div class="profile-page-copy">
+            <p class="therapist-meta" data-therapist-detail-meta></p>
+            <div class="profile-stat-list" data-therapist-detail-stats></div>
+            <p class="therapist-bio" data-therapist-detail-bio></p>
+            <div class="hero-actions">
+              <a class="button secondary" href="services.html">Back To Services</a>
+              <a class="button primary" href="booking.html">Book This Therapist</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section therapist-section therapist-section-page" data-therapist-list-section>
       <div class="container">
         <div class="section-heading">
           <p class="eyebrow">Male Therapists</p>
@@ -75,6 +92,6 @@
   </footer>
 
   <script src="config.js?v=20260414r"></script>
-  <script src="script.js?v=20260414r"></script>
+  <script src="script.js?v=20260417b"></script>
 </body>
 </html>
