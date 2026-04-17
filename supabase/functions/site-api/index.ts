@@ -662,9 +662,11 @@ Deno.serve(async (request) => {
 
     return json({ success: false, message: "Invalid action." }, 400);
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error || "Unexpected error.");
+    console.error("Edge Function Error:", message, error);
     return json({
       success: false,
-      message: error instanceof Error ? error.message : "Unexpected error."
+      message: message
     }, 500);
   }
 });
