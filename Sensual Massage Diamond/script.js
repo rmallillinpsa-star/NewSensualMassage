@@ -62,9 +62,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       renderTherapistDetailPage(siteData);
     } catch (error) {
       console.warn("Failed to load Google Sheets data.", error);
+      renderPublicDataError(error);
       renderBookingPage(defaultSiteData);
     }
   } else {
+    renderPublicDataError(new Error("API base URL is missing."));
     renderBookingPage(defaultSiteData);
   }
 
@@ -74,6 +76,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     startSiteAutoRefresh();
   }
 });
+
+function renderPublicDataError(error) {
+  const message = String(error?.message || "Failed to load website data.").trim();
+  const therapistGrid = document.querySelector("[data-therapist-grid]");
+
+  if (therapistGrid) {
+    therapistGrid.innerHTML = `<div class="service-note"><p>${escapeHtml(message)}</p></div>`;
+  }
+}
 
 async function fetchSiteData() {
   const response = await fetch(`${apiBaseUrl}?action=siteData`);
