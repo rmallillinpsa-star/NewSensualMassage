@@ -206,9 +206,9 @@ function applyBranchScopedSiteData(siteData, branchName) {
   return {
     branches: getActiveRows(scopedData.branches || []).filter((row) => isSameBranch(row.name, branchName)),
     services: filterRowsByBranch(scopedData.services || [], branchName, true),
-    staff: getActiveRows(scopedData.staff || []),
+    staff: filterRowsByBranch(scopedData.staff || [], branchName, true),
     promos: filterRowsByBranch(scopedData.promos || [], branchName, true),
-    slides: getActiveRows(scopedData.slides || []),
+    slides: filterRowsByBranch(scopedData.slides || [], branchName, true),
     home_sections: filterRowsByBranch(scopedData.home_sections || [], branchName, true),
     rates: filterRowsByBranch(scopedData.rates || [], branchName, true),
     settings: scopedData.settings || {}
