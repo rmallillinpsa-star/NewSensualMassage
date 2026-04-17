@@ -1919,3 +1919,11 @@ body[data-selected-branch] .therapist-profile-grid .therapist-body h3 {
     height: 8.5rem;
   }
 }
+
+body[data-selected-branch-slug="elite"] .brand strong,
+body[data-selected-branch-slug="elite"] .brand [data-business-name] {
+  font-family: "Juliette", "Brush Script MT", "Lucida Handwriting", cursive !important;
+  font-size: 2rem !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.02em !important;
+}
