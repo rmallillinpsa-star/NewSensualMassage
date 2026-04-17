@@ -368,10 +368,14 @@ function renderAdminRecord(sheetKey, row, index) {
 
 function renderStaffAdminPreview(row) {
   const name = String(row.name || "").trim() || "Therapist Preview";
-  const imageUrl = getFirstStaffImage(row);
+  const imageUrls = normalizeStaffImageList(String(row.image_urls || ""));
+  const imageUrl = imageUrls[0] || "";
   const visual = imageUrl
     ? `<img class="admin-staff-preview-image" src="${escapeAttribute(imageUrl)}" alt="${escapeAttribute(name)}" data-staff-preview-image>`
     : `<div class="admin-staff-preview-placeholder" data-staff-preview-image>${escapeHtml(getInitials(name))}</div>`;
+  const gallery = imageUrls.length
+    ? `<div class="admin-staff-preview-gallery">${imageUrls.map((url, index) => `<img class="admin-staff-preview-thumb" src="${escapeAttribute(url)}" alt="${escapeAttribute(name)} photo ${index + 1}">`).join("")}</div>`
+    : "";
 
   return `
     <div class="admin-staff-preview">
@@ -379,6 +383,7 @@ function renderStaffAdminPreview(row) {
       <div class="admin-staff-preview-copy">
         <p class="contact-label">Profile Picture</p>
         <strong data-staff-preview-name>${escapeHtml(name)}</strong>
+        ${gallery}
       </div>
     </div>
   `;
@@ -531,6 +536,11 @@ function bindStaffPreviewInputs() {
       const imageUrl = imageUrls[0] || "";
       const nameNode = record.querySelector("[data-staff-preview-name]");
       let imageNode = record.querySelector("[data-staff-preview-image]");
+      const copyNode = record.querySelector(".admin-staff-preview-copy");
+      const galleryMarkup = imageUrls.length
+        ? `<div class="admin-staff-preview-gallery">${imageUrls.map((url, index) => `<img class="admin-staff-preview-thumb" src="${escapeAttribute(url)}" alt="${escapeAttribute(name)} photo ${index + 1}">`).join("")}</div>`
+        : "";
+      const existingGallery = record.querySelector(".admin-staff-preview-gallery");
 
       if (imageInput) {
         imageInput.value = imageUrls.join("\n");
@@ -542,6 +552,16 @@ function bindStaffPreviewInputs() {
 
       if (!imageNode) {
         return;
+      }
+
+      if (galleryMarkup) {
+        if (existingGallery) {
+          existingGallery.outerHTML = galleryMarkup;
+        } else {
+          copyNode?.insertAdjacentHTML("beforeend", galleryMarkup);
+        }
+      } else if (existingGallery) {
+        existingGallery.remove();
       }
 
       if (imageUrl) {
@@ -705,7 +725,8 @@ async function handleAdminFileUpload(event) {
     }
 
     if (fieldKey === "image_urls") {
-      targetInput.value = uploadedUrls.join("\n");
+      const existingUrls = normalizeStaffImageList(String(targetInput.value || ""));
+      targetInput.value = [...existingUrls, ...uploadedUrls].slice(0, 10).join("\n");
     } else {
       targetInput.value = uploadedUrls[0] || "";
     }

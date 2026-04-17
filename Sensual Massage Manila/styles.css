@@ -1580,6 +1580,22 @@ body[data-selected-branch] .therapist-profile-grid .therapist-body h3 {
   font-size: 1.1rem;
 }
 
+.admin-staff-preview-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.6rem;
+}
+
+.admin-staff-preview-thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(113, 89, 78, 0.12);
+  background: #ffffff;
+}
+
 /* Branch preview inside admin records */
 .admin-branch-preview {
   display: grid;
