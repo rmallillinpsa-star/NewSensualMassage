@@ -395,10 +395,25 @@ async function replaceTableRows(adminClient: ReturnType<typeof getAdminClient>, 
 }
 
 async function saveBranches(adminClient: ReturnType<typeof getAdminClient>, rows: Record<string, unknown>[]) {
+  const branchSiteKeyMap: Record<string, string> = {
+    "sensual-massage-manila": "manila",
+    "sensual-massage-elite": "elite",
+    "sensual-massage-diamond": "diamond"
+  };
+
   const mappedRows = rows.map((row, index) => {
     const name = normalizeText(row.name);
     const slug = normalizeSlug(row.slug || name);
-    const siteKey = slug || `branch-${index + 1}`;
+    let siteKey = branchSiteKeyMap[slug];
+    
+    if (!siteKey) {
+      const nameLower = name.toLowerCase();
+      if (nameLower.includes("manila")) siteKey = "manila";
+      else if (nameLower.includes("elite")) siteKey = "elite";
+      else if (nameLower.includes("diamond")) siteKey = "diamond";
+      else siteKey = "manila";
+    }
+
     return {
       site_key: siteKey,
       slug: slug || siteKey,
