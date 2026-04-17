@@ -746,7 +746,7 @@ function renderStaffGroups(staffRows, branches) {
 
   const branchNames = getOrderedBranchNames(branches, filteredStaff);
 
-  therapistGrid.innerHTML = branchNames.map((branchName) => {
+  const markup = branchNames.map((branchName) => {
     const branchStaff = filteredStaff.filter((staff) => isSameBranch(staff.branch, branchName));
     const femaleStaff = genderFilter === "male"
       ? []
@@ -773,6 +773,8 @@ function renderStaffGroups(staffRows, branches) {
       </section>
     `;
   }).filter(Boolean).join("");
+
+  therapistGrid.innerHTML = markup || `<div class="service-note"><p>No ${genderFilter || ""} therapists available yet.</p></div>`;
 }
 
 function renderStaffCard(title, rows) {

@@ -1927,3 +1927,52 @@ body[data-selected-branch-slug="elite"] .brand [data-business-name] {
   font-weight: 400 !important;
   letter-spacing: 0.02em !important;
 }
+
+body,
+button,
+input,
+select,
+textarea,
+.site-nav a,
+.button,
+.lead,
+.lead.compact,
+.service-note p,
+.therapist-bio,
+.therapist-meta,
+.section-heading p,
+.footer-links a {
+  font-family: Arial, Helvetica, sans-serif !important;
+}
+
+h1,
+h2,
+h3,
+.section-heading h2,
+.page-hero h1,
+.hero h1,
+.therapist-body h3,
+.therapist-profile-grid .therapist-body h3,
+body[data-selected-branch] .therapist-profile-grid .therapist-body h3 {
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+}
+
+.hero h1,
+.page-hero h1,
+h1 {
+  font-size: 1.9rem !important;
+}
+
+.section-heading h2,
+h2 {
+  font-size: 1.4rem !important;
+}
+
+.therapist-body h3,
+.therapist-profile-grid .therapist-body h3,
+body[data-selected-branch] .therapist-profile-grid .therapist-body h3,
+h3 {
+  font-size: 1rem !important;
+}
