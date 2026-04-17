@@ -840,13 +840,20 @@ img.qr,
 }
 
 .inline-icon {
-  width: 1rem;
-  height: 1rem;
+  width: 1.1rem;
+  height: 1.1rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
   color: var(--accent-strong);
+}
+
+.inline-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .inline-icon svg {

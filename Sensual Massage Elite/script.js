@@ -1693,18 +1693,25 @@ function normalizePhoneDisplay(value) {
 
 function getIconSvg(name) {
   const icons = {
-    whatsapp: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.5 3.5A11.3 11.3 0 0 0 2.9 17.1L1.5 22.5l5.5-1.4A11.3 11.3 0 1 0 20.5 3.5Zm-8.3 17a9.2 9.2 0 0 1-4.7-1.3l-.3-.2-3.2.8.9-3.1-.2-.3a9.2 9.2 0 1 1 7.5 4.1Zm5-6.9c-.3-.1-1.8-.9-2.1-1s-.5-.1-.7.1-.8 1-1 1.1-.4.2-.7 0a7.6 7.6 0 0 1-2.2-1.4 8.3 8.3 0 0 1-1.5-1.9c-.2-.3 0-.5.1-.7l.5-.6.3-.5a.8.8 0 0 0 0-.6l-1-2.5c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.8.4 3.4 3.4 0 0 0-1 2.5c0 1.4 1 2.7 1.1 2.9a12.9 12.9 0 0 0 5 4.3c2 .8 2 .5 2.4.5a2.9 2.9 0 0 0 1.9-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.6-.3Z"/></svg>',
-    viber: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.6 2 3 5.3 3 10.3c0 2.7 1.3 4.8 3.5 6.1V22l4.1-2.2c.5.1 1 .1 1.4.1 5.4 0 9-3.3 9-8.3S17.4 2 12 2Zm4.5 11.7c-.2.5-1.1 1-1.5 1.1-.4 0-.9.2-2.8-.6a9.8 9.8 0 0 1-4.1-3.6c-.6-1-.8-1.8-.8-2.1a2.4 2.4 0 0 1 .7-1.6c.3-.3.6-.4.8-.4h.6c.2 0 .4 0 .6.5l.7 1.7c.1.3.1.4 0 .6l-.3.5-.3.4c-.1.2-.2.4 0 .6.3.5.8 1.1 1.4 1.6.7.6 1.3 1 1.8 1.2.2.1.4 0 .6-.1l.7-.9c.2-.2.4-.3.7-.2l1.6.6c.3.1.5.2.6.4.1.1.1.8-.1 1.3ZM9.3 5.7c2.8-.3 5.6 1.3 6.4 4 .1.3.6.2.5-.1-.9-2.9-3.9-4.7-7-4.4-.3 0-.2.5.1.5Zm-.1 2c1.8-.2 3.7.8 4.3 2.5.1.3.6.2.5-.1-.7-1.9-2.7-3.2-4.9-3-.3 0-.2.6.1.6Zm0 2c.8-.1 1.6.3 1.9 1.1.1.3.6.2.5-.1-.4-1-1.4-1.7-2.5-1.6-.3 0-.2.6.1.6Z"/></svg>',
-    wechat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9.3 4C5 4 1.5 6.8 1.5 10.3c0 2 1.1 3.8 2.9 5l-.7 2.5 2.8-1.4c.9.2 1.8.4 2.8.4h.5c-.3-.7-.4-1.5-.4-2.3 0-3.8 3.8-6.9 8.4-6.9h.4C17.6 5.5 13.8 4 9.3 4Zm-2.8 5.1a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8Zm5.6 0a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8ZM17.3 9c-3.5 0-6.3 2.2-6.3 5 0 1.6.9 3 2.3 4l-.5 2 2.2-1.1c.7.2 1.5.3 2.3.3 3.5 0 6.2-2.2 6.2-5s-2.8-5.1-6.2-5.1Zm-2.1 4.1a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6Zm4.3 0a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6Z"/></svg>',
-    telegram: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.5 4.8 18.3 20c-.2 1.1-.9 1.4-1.8.9l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.3L5.8 13.5.9 12c-1.1-.3-1.1-1 .2-1.5L20 3.2c.9-.3 1.7.2 1.5 1.6Z"/></svg>',
-    eye: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 5c5.4 0 9.7 4.5 10.9 6-.2.3-.5.7-.9 1.2-1.7 2-5.3 6.8-10 6.8S3.7 14.2 2 12.2c-.4-.5-.7-.9-.9-1.2C2.3 9.5 6.6 5 12 5Zm0 2C8.3 7 5.1 9.7 3.4 11.5c1.7 1.8 4.9 4.5 8.6 4.5s6.9-2.7 8.6-4.5C18.9 9.7 15.7 7 12 7Zm0 1.8A3.2 3.2 0 1 1 8.8 12 3.2 3.2 0 0 1 12 8.8Zm0 2A1.2 1.2 0 1 0 13.2 12 1.2 1.2 0 0 0 12 10.8Z"/></svg>',
-    facebook: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.5 22v-8h2.7l.4-3h-3V9.2c0-.9.3-1.5 1.6-1.5h1.5V5c-.7-.1-1.5-.1-2.2-.1-2.2 0-3.8 1.4-3.8 4V11H8v3h2.7v8h2.8Z"/></svg>',
-    x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 2H22l-6.8 7.8L23 22h-6.1l-4.8-6.4L6.5 22H3.4l7.3-8.3L1 2h6.2l4.3 5.8L18.9 2Zm-1.1 18h1.7L6.3 3.9H4.5L17.8 20Z"/></svg>',
-    instagram: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2.2A2.8 2.8 0 0 0 4.2 7v10A2.8 2.8 0 0 0 7 19.8h10a2.8 2.8 0 0 0 2.8-2.8V7A2.8 2.8 0 0 0 17 4.2H7Zm10.3 1.6a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2.2A2.8 2.8 0 1 0 12 15a2.8 2.8 0 0 0 0-5.6Z"/></svg>',
-    map: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg>'
+    whatsapp: 'assets/whatsapp.png',
+    viber: 'assets/viber.png',
+    kakaotalk: 'assets/kakaotalk.png',
+    wechat: 'assets/wechat.png',
+    telegram: 'assets/telegram.png',
+    eye: '',
+    facebook: '',
+    x: '',
+    instagram: '',
+    map: ''
   };
 
-  return `<span class="inline-icon inline-icon-${escapeAttribute(name)}">${icons[name] || ""}</span>`;
+  const iconUrl = icons[name];
+
+  if (!iconUrl) {
+    return `<span class="inline-icon inline-icon-${escapeAttribute(name)}"></span>`;
+  }
+
+  return `<span class="inline-icon inline-icon-${escapeAttribute(name)}"><img src="${escapeAttribute(iconUrl)}" alt="${escapeAttribute(name)} icon" loading="lazy"></span>`;
 }
 
 function escapeHtml(value) {
