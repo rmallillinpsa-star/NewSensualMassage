@@ -523,18 +523,34 @@ function renderHeaderBranchPhones(branches) {
 
   const items = visibleBranches
     .map((branch) => {
-      const name = String(branch.name || "").trim();
       const phone = String(branch.phone || "").trim();
 
-      if (!name || !phone) {
+      if (!phone) {
         return "";
       }
 
+      let displayPhone = phone;
+      if (selectedBranchName && displayPhone.toLowerCase().startsWith(selectedBranchName.toLowerCase())) {
+        displayPhone = displayPhone.slice(selectedBranchName.length).trim();
+        if (displayPhone.startsWith(':')) {
+          displayPhone = displayPhone.slice(1).trim();
+        }
+      }
+
       return `
-        <a class="header-branch-phone" href="${escapeAttribute(buildWhatsappUrl(phone))}" target="_blank" rel="noreferrer">
-          <strong>${escapeHtml(name)}</strong>
-          <span>${escapeHtml(phone)}</span>
-        </a>
+        <div class="header-contact-info">
+          <div class="header-contact-label">Contact Number:</div>
+          <div class="header-contact-row">
+            <a class="header-contact-number" href="${escapeAttribute(buildWhatsappUrl(phone))}" target="_blank" rel="noreferrer">${escapeHtml(displayPhone)}</a>
+            <span class="header-contact-icons" aria-hidden="true">
+              <img class="header-contact-icon" src="assets/whatsapp.png" alt="WhatsApp">
+              <img class="header-contact-icon" src="assets/viber.png" alt="Viber">
+              <img class="header-contact-icon" src="assets/telegram.png" alt="Telegram">
+              <img class="header-contact-icon" src="assets/kakaotalk.png" alt="KakaoTalk">
+              <img class="header-contact-icon" src="assets/wechat.png" alt="WeChat">
+            </span>
+          </div>
+        </div>
       `;
     })
     .filter(Boolean)

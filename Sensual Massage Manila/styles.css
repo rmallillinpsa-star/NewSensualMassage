@@ -168,25 +168,53 @@ a {
   display: none;
 }
 
-.header-branch-phone {
+.header-contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.15rem;
+}
+
+.header-contact-label {
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.header-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.header-contact-number {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.55rem 0.9rem;
+  justify-content: center;
+  padding: 0.35rem 0.7rem;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(181, 15, 42, 0.2);
+  background: rgba(255, 255, 255, 0.96);
   color: var(--text);
-  font-size: 0.9rem;
-  box-shadow: 0 12px 24px rgba(181, 15, 42, 0.06);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.95rem;
 }
 
-.header-branch-phone strong {
-  font-size: 0.88rem;
+.header-contact-icons {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
-.header-branch-phone span {
-  color: var(--muted);
+.header-contact-icon {
+  width: 1.6rem;
+  height: 1.6rem;
+  display: block;
+  border-radius: 0.35rem;
+  object-fit: contain;
 }
 
 .brand {
@@ -197,8 +225,9 @@ a {
 
 .brand-copy {
   display: flex;
-  align-items: center;
-  gap: 0.3rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
   min-width: 0;
 }
 
