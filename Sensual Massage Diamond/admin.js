@@ -2,6 +2,7 @@ const adminConfig = window.SITE_CONFIG || {};
 const adminApiBaseUrl = adminConfig.apiBaseUrl || "";
 const adminSupabaseUrl = adminConfig.supabaseUrl || "";
 const adminSupabaseAnonKey = adminConfig.supabaseAnonKey || "";
+const adminApiKey = adminConfig.adminApiKey || "";
 const adminSessionStorageKey = "sensual-admin-session";
 
 const supabase = window.supabase.createClient(adminSupabaseUrl, adminSupabaseAnonKey);
@@ -1032,6 +1033,10 @@ async function postAdminAction(payload) {
     "Content-Type": "application/json",
     apikey: adminSupabaseAnonKey || ""
   };
+
+  if (adminApiKey) {
+    headers["x-api-key"] = adminApiKey;
+  }
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
