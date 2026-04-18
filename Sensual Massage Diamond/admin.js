@@ -42,7 +42,7 @@ const adminSheetDefinitions = {
     label: "Staff",
     entryLabel: "Therapist",
     fields: [
-      { key: "branch", label: "Branch", type: "select", optionsSource: "branches", allowBlank: true, blankLabel: "Select branch" },
+      { key: "branch", label: "Branch", type: "select", optionsSource: "branches", required: true },
       { key: "name", label: "Name", placeholder: "Therapist name", required: true },
       { key: "gender", label: "Gender", type: "select", options: ["Female", "Male"], defaultValue: "Female" },
       { key: "role", label: "Role", placeholder: "Example: Senior Therapist" },
