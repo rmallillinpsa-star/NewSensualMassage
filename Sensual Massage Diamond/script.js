@@ -285,6 +285,7 @@ function renderHomePage(siteData) {
   renderSlides(siteData.slides || []);
   renderPromos(siteData.promos || []);
   renderBranchCards(siteData.branches || [], "[data-home-branch-list]");
+  updateBranchLocationMap(siteData.branches || []);
   renderSocialLinks();
   populateSelect(
     document.querySelector("[data-booking-service-options]"),
@@ -296,13 +297,39 @@ function renderHomePage(siteData) {
   );
 }
 
-function renderServicesPage(siteData) {
-  renderServiceCards(siteData.services || []);
-  renderRateCards(siteData.rates || []);
-  renderSocialLinks();
+function renderBranchMapUrl(mapLink, address) {
+  const normalizedMapLink = String(mapLink || "").trim();
+  const fallbackAddress = String(address || "Manila, Philippines").trim() || "Manila, Philippines";
+  const fallbackUrl = `https://maps.google.com/maps?q=${encodeURIComponent(fallbackAddress)}&z=15&output=embed`;
+
+  if (!normalizedMapLink) {
+    return fallbackUrl;
+  }
+
+  if (normalizedMapLink.includes("google.com/maps") || normalizedMapLink.includes("google.com")) {
+    if (normalizedMapLink.includes("output=embed")) {
+      return normalizedMapLink;
+    }
+    return `${normalizedMapLink}${normalizedMapLink.includes("?") ? "&" : "?"}output=embed`;
+  }
+
+  return fallbackUrl;
 }
 
-function renderRatesPage(siteData) {
+function updateBranchLocationMap(branches) {
+  const iframe = document.querySelector("#branch-map-iframe");
+  if (!iframe) {
+    return;
+  }
+
+  const activeBranches = getActiveRows(branches || []);
+  const branch = activeBranches[0] || {};
+  const address = String(branch.address || branch.name || "Manila, Philippines").trim();
+  const mapLink = String(branch.map_link || "").trim();
+  iframe.src = renderBranchMapUrl(mapLink, address);
+}
+
+function renderServicesPage(siteData) {
   renderRateCards(siteData.rates || []);
   renderSocialLinks();
 }

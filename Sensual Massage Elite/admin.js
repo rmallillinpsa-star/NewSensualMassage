@@ -10,6 +10,8 @@ const adminSheetDefinitions = {
     label: "Branches",
     entryLabel: "Branch",
     fields: [
+      { key: "id", type: "hidden", readOnly: true },
+      { key: "id", type: "hidden", readOnly: true },
       { key: "name", label: "Branch Name", placeholder: "Example: Makati Branch", required: true },
       { key: "address", label: "Address", type: "textarea", placeholder: "Full branch address", required: true },
       { key: "phone", label: "Phone", placeholder: "+63 917 000 0000" },
@@ -28,6 +30,7 @@ const adminSheetDefinitions = {
     label: "Services",
     entryLabel: "Service",
     fields: [
+      { key: "id", type: "hidden", readOnly: true },
       { key: "branch", label: "Branch", type: "select", optionsSource: "branches", allowBlank: true, blankLabel: "All branches" },
       { key: "name", label: "Service Name", placeholder: "Example: Signature Relaxation Massage", required: true },
       { key: "description", label: "Description", type: "textarea", placeholder: "Short service description", required: true },
@@ -42,6 +45,7 @@ const adminSheetDefinitions = {
     label: "Staff",
     entryLabel: "Therapist",
     fields: [
+      { key: "id", type: "hidden", readOnly: true },
       { key: "branch", label: "Branch", type: "select", optionsSource: "branches", required: true },
       { key: "name", label: "Name", placeholder: "Therapist name", required: true },
       { key: "gender", label: "Gender", type: "select", options: ["Female", "Male"], defaultValue: "Female" },
@@ -59,6 +63,7 @@ const adminSheetDefinitions = {
     label: "Promos",
     entryLabel: "Promo",
     fields: [
+      { key: "id", type: "hidden", readOnly: true },
       { key: "branch", label: "Branch", type: "select", optionsSource: "branches", allowBlank: true, blankLabel: "All branches" },
       { key: "title", label: "Promo Title", placeholder: "Example: Intro Bliss Package", required: true },
       { key: "description", label: "Description", type: "textarea", placeholder: "Promo details", required: true },
@@ -70,6 +75,7 @@ const adminSheetDefinitions = {
     label: "Slides",
     entryLabel: "Slide",
     fields: [
+      { key: "id", type: "hidden", readOnly: true },
       { key: "branch", label: "Branch", type: "select", optionsSource: "branches", allowBlank: true, blankLabel: "All branches" },
       { key: "title", label: "Slide Title", placeholder: "Optional title" },
       { key: "subtitle", label: "Subtitle", type: "textarea", placeholder: "Optional subtitle" },
@@ -84,6 +90,7 @@ const adminSheetDefinitions = {
     label: "Home Sections",
     entryLabel: "Section",
     fields: [
+      { key: "id", type: "hidden", readOnly: true },
       { key: "branch", label: "Branch", type: "select", optionsSource: "branches", allowBlank: true, blankLabel: "All branches" },
       { key: "section_key", label: "Section Key", placeholder: "Example: booking_block", required: true },
       { key: "title", label: "Title", placeholder: "Section title", required: true },
@@ -98,6 +105,7 @@ const adminSheetDefinitions = {
     label: "Rates",
     entryLabel: "Rate",
     fields: [
+      { key: "id", type: "hidden", readOnly: true },
       { key: "branch", label: "Branch", type: "select", optionsSource: "branches", allowBlank: true, blankLabel: "All branches" },
       { key: "key", label: "Rate Key", placeholder: "Auto-generated from label", readOnly: true },
       { key: "label", label: "Label", placeholder: "Example: 1 Female Service", required: true },
@@ -110,6 +118,7 @@ const adminSheetDefinitions = {
     label: "Settings",
     entryLabel: "Setting",
     fields: [
+      { key: "id", type: "hidden", readOnly: true },
       { key: "key", label: "Setting Key", placeholder: "Example: hero_title", required: true },
       { key: "value", label: "Setting Value", type: "textarea", placeholder: "Enter setting value", required: true }
     ]
@@ -118,6 +127,7 @@ const adminSheetDefinitions = {
     label: "Bookings",
     entryLabel: "Booking",
     fields: [
+      { key: "id", type: "hidden", readOnly: true },
       { key: "branch", label: "Branch", type: "select", optionsSource: "branches", allowBlank: true, blankLabel: "Select branch" },
       { key: "timestamp", label: "Created At", placeholder: "Auto-filled or manual edit" },
       { key: "name", label: "Customer Name", placeholder: "Customer full name", required: true },
@@ -198,12 +208,13 @@ async function restoreAdminSession() {
   }
 
   const { data, error } = await client.auth.getSession();
-  if (error) {
+  if (error || !data?.session?.access_token) {
     console.warn("Failed to restore admin session.", error);
+    await clearAdminSession();
     return "";
   }
 
-  const accessToken = String(data?.session?.access_token || "").trim();
+  const accessToken = String(data.session.access_token).trim();
   adminState.token = accessToken;
   return accessToken;
 }
@@ -278,12 +289,12 @@ async function loadAdminData() {
     });
     adminState.branchIdByName = branchIdByName;
 
-    // Map branch_id to branch for display
+    // Map branch_id to branch name for display
     ['staff', 'slides', 'services', 'rates', 'promos', 'home_sections'].forEach(sheetKey => {
       if (adminState.data[sheetKey]) {
         adminState.data[sheetKey] = adminState.data[sheetKey].map(row => ({
           ...row,
-          branch: row.branch_id || '',
+          branch: branchNameById.get(row.branch_id) || '',
         }));
       }
     });
@@ -355,7 +366,7 @@ function renderAdminPanel(sheetKey, isActive) {
   if (['staff', 'slides', 'services', 'rates', 'promos', 'home_sections'].includes(sheetKey)) {
     const selectedBranch = document.getElementById("admin-branch-select")?.value || '';
     if (selectedBranch) {
-      rows = rows.filter(row => row.branch === adminState.branchIdByName.get(selectedBranch));
+      rows = rows.filter(row => row.branch === selectedBranch);
     }
   }
   const emptyMessage = `No ${definition.label.toLowerCase()} yet. Click Add ${definition.entryLabel}.`;
@@ -1004,13 +1015,17 @@ function showAdminApp(isVisible) {
   }
 }
 
-function logoutAdmin() {
+async function clearAdminSession() {
   adminState.token = "";
   adminState.data = {};
   const client = initializeSupabaseClient();
   if (client) {
-    client.auth.signOut();
+    await client.auth.signOut();
   }
+}
+
+async function logoutAdmin() {
+  await clearAdminSession();
   showAdminApp(false);
 }
 
@@ -1053,19 +1068,15 @@ async function postAdminAction(payload) {
         errorMessage = JSON.stringify(result.error, Object.keys(result.error).sort(), 2);
       }
     }
+
+    if (/invalid user session|admin access denied|session.*expired/i.test(errorMessage)) {
+      await clearAdminSession();
+    }
+
     throw new Error(errorMessage);
   }
 
   return result;
-}
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
 }
 
 function escapeAttribute(value) {

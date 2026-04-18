@@ -278,6 +278,7 @@ async function getAdminData(request: Request) {
 
   return {
     branches: (branches.data || []).map((row) => ({
+      id: row.id,
       name: row.name,
       address: row.address || "",
       phone: row.phone || "",
@@ -292,6 +293,8 @@ async function getAdminData(request: Request) {
       active: toBooleanString(row.active)
     })),
     services: (services.data || []).map((row) => ({
+      id: row.id,
+      branch_id: row.branch_id || null,
       branch: row.branch_id ? branchById.get(row.branch_id) || "" : "",
       name: row.name,
       description: row.description || "",
@@ -302,6 +305,8 @@ async function getAdminData(request: Request) {
       active: toBooleanString(row.active)
     })),
     staff: (staff.data || []).map((row) => ({
+      id: row.id,
+      branch_id: row.branch_id || null,
       branch: branchById.get(row.branch_id) || "",
       name: row.name,
       gender: row.gender || "Female",
@@ -315,6 +320,8 @@ async function getAdminData(request: Request) {
       active: toBooleanString(row.active)
     })),
     promos: (promos.data || []).map((row) => ({
+      id: row.id,
+      branch_id: row.branch_id || null,
       branch: row.branch_id ? branchById.get(row.branch_id) || "" : "",
       title: row.title,
       description: row.description || "",
@@ -322,6 +329,8 @@ async function getAdminData(request: Request) {
       active: toBooleanString(row.active)
     })),
     slides: (slides.data || []).map((row) => ({
+      id: row.id,
+      branch_id: row.branch_id || null,
       branch: row.branch_id ? branchById.get(row.branch_id) || "" : "",
       title: row.title || "",
       subtitle: row.subtitle || "",
@@ -332,6 +341,8 @@ async function getAdminData(request: Request) {
       active: toBooleanString(row.active)
     })),
     home_sections: (homeSections.data || []).map((row) => ({
+      id: row.id,
+      branch_id: row.branch_id || null,
       branch: row.branch_id ? branchById.get(row.branch_id) || "" : "",
       section_key: row.section_key,
       title: row.title,
@@ -342,6 +353,8 @@ async function getAdminData(request: Request) {
       active: toBooleanString(row.active)
     })),
     rates: (rates.data || []).map((row) => ({
+      id: row.id,
+      branch_id: row.branch_id || null,
       branch: row.branch_id ? branchById.get(row.branch_id) || "" : "",
       key: row.key,
       label: row.label,
@@ -350,10 +363,13 @@ async function getAdminData(request: Request) {
       active: toBooleanString(row.active)
     })),
     settings: (settings.data || []).map((row) => ({
+      id: row.id,
       key: row.key,
       value: row.value
     })),
     bookings: (bookings.data || []).map((row) => ({
+      id: row.id,
+      branch_id: row.branch_id || null,
       branch: row.branch_name || (row.branch_id ? branchById.get(row.branch_id) || "" : ""),
       timestamp: row.timestamp || row.created_at || "",
       name: row.name || "",
@@ -399,12 +415,71 @@ async function replaceTableRows(adminClient: ReturnType<typeof getAdminClient>, 
   if (insertError) throw insertError;
 }
 
+async function upsertRows(adminClient: ReturnType<typeof getAdminClient>, tableName: string, rows: Record<string, unknown>[]) {
+  if (!rows.length) return [];
+
+  const { data, error } = await adminClient.from(tableName).upsert(rows, {
+    onConflict: ["id"],
+    returning: "representation"
+  });
+  if (error) throw error;
+
+  const ids = new Set<string>();
+  rows.forEach((row) => {
+    const id = String(row.id || "").trim();
+    if (id) ids.add(id);
+  });
+  (data || []).forEach((row) => {
+    const id = String((row as Record<string, unknown>).id || "").trim();
+    if (id) ids.add(id);
+  });
+
+  return Array.from(ids);
+}
+
+async function deleteRowsNotIn(adminClient: ReturnType<typeof getAdminClient>, tableName: string, idsToKeep: string[]) {
+  if (idsToKeep.length) {
+    const values = idsToKeep.map((value) => String(value || "").trim()).filter(Boolean);
+    if (values.length) {
+      const valueList = values.join(",");
+      const { error: deleteError } = await adminClient
+        .from(tableName)
+        .delete()
+        .not("id", "in", `(${valueList})`);
+      if (deleteError) throw deleteError;
+      return;
+    }
+  }
+
+  const { error: deleteError } = await adminClient.from(tableName).delete().not("id", "is", null);
+  if (deleteError) throw deleteError;
+}
+
 async function saveBranches(adminClient: ReturnType<typeof getAdminClient>, rows: Record<string, unknown>[]) {
   const branchSiteKeyMap: Record<string, string> = {
     "sensual-massage-manila": "manila",
     "sensual-massage-elite": "elite",
     "sensual-massage-diamond": "diamond"
   };
+
+  const { data: existingBranches, error: existingBranchesError } = await adminClient
+    .from("branches")
+    .select("id, name, slug, site_key");
+  if (existingBranchesError) throw existingBranchesError;
+
+  const existingBranchIdBySlug = new Map<string, string>();
+  const existingBranchIdByName = new Map<string, string>();
+  const existingBranchIdBySiteKey = new Map<string, string>();
+  (existingBranches || []).forEach((row) => {
+    const id = String(row.id || "").trim();
+    if (!id) return;
+    const name = String(row.name || "").trim();
+    const slug = String(row.slug || "").trim();
+    const siteKey = String(row.site_key || "").trim();
+    if (slug) existingBranchIdBySlug.set(slug, id);
+    if (name) existingBranchIdByName.set(name, id);
+    if (siteKey) existingBranchIdBySiteKey.set(siteKey, id);
+  });
 
   const mappedRows = rows.map((row, index) => {
     const name = normalizeText(row.name);
@@ -419,7 +494,11 @@ async function saveBranches(adminClient: ReturnType<typeof getAdminClient>, rows
       else siteKey = "manila";
     }
 
+    const explicitId = String(row.id || "").trim();
+    const preservedId = explicitId || existingBranchIdBySiteKey.get(siteKey) || existingBranchIdBySlug.get(slug) || existingBranchIdByName.get(name);
+
     return {
+      ...(preservedId ? { id: preservedId } : {}),
       site_key: siteKey,
       slug: slug || siteKey,
       name,
@@ -438,7 +517,8 @@ async function saveBranches(adminClient: ReturnType<typeof getAdminClient>, rows
     };
   }).filter((row) => row.name);
 
-  await replaceTableRows(adminClient, adminManagedTables.branches, mappedRows);
+  const idsToKeep = await upsertRows(adminClient, "branches", mappedRows);
+  await deleteRowsNotIn(adminClient, "branches", idsToKeep);
 }
 
 async function saveServices(adminClient: ReturnType<typeof getAdminClient>, rows: Record<string, unknown>[]) {
