@@ -56,7 +56,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       renderHomePage(siteData);
       renderServicesPage(siteData);
       renderTherapistsPage(siteData);
-      renderRatesPage(siteData);
       renderBookingPage(siteData);
       renderContactPage(siteData);
       renderTherapistDetailPage(siteData);
