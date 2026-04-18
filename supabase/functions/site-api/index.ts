@@ -467,7 +467,7 @@ async function saveStaff(adminClient: ReturnType<typeof getAdminClient>, rows: R
     active: toDbBoolean(row.active),
     sort_order: index,
     __imageUrls: parseImageUrls(row.image_urls)
-  })).filter((row) => row.branch_id && row.name);
+  })).filter((row) => row.name);
 
   const insertRows = staffRows.map(({ __imageUrls, ...row }) => row);
   await replaceTableRows(adminClient, adminManagedTables.staff, insertRows);
