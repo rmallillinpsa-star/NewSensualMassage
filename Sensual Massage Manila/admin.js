@@ -18,6 +18,17 @@ async function withTimeout(promise, ms, timeoutMessage) {
   }
 }
 
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return (text || '').replace(/[&<>"']/g, m => map[m]);
+}
+
 const adminSheetDefinitions = {
   branches: {
     label: "Branches",
