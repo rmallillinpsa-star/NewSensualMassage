@@ -203,22 +203,31 @@ async function getSiteData() {
 }
 
 async function createBooking(payload: Record<string, unknown>) {
+  // Validate required fields
+  if (!payload.name || String(payload.name).trim() === '') {
+    throw new Error("Customer name is required");
+  }
+
   const adminClient = getAdminClient();
   const branchName = String(payload.branch || "").trim();
 
   let branchId: string | null = null;
+  let branchEmail: string = "";
+
   if (branchName) {
     const { data: branch } = await adminClient
       .from("branches")
-      .select("id")
+      .select("id, email")
       .eq("name", branchName)
       .maybeSingle();
     branchId = branch?.id || null;
+    branchEmail = branch?.email || "";
   }
 
   const bookingData = {
     branch_id: branchId,
     branch_name: branchName,
+    branch_email: branchEmail,
     name: String(payload.name || "").trim(),
     phone: String(payload.phone || "").trim(),
     service: String(payload.service || "").trim(),
@@ -239,57 +248,164 @@ async function createBooking(payload: Record<string, unknown>) {
   const { data, error } = await adminClient.from("bookings").insert(bookingData).select().single();
 
   if (error) {
-    throw error;
+    console.error("Failed to save booking:", error);
+    throw new Error(`Failed to save booking: ${error.message}`);
   }
 
-  // Send email notification
-  try {
-    await sendBookingEmail(data);
-  } catch (emailError) {
-    console.warn("Failed to send booking email:", emailError);
-    // Don't fail the booking if email fails
+  // Send email notification asynchronously (don't block booking creation)
+  if (data) {
+    sendBookingEmail(data).catch(emailError => {
+      console.error("Email notification failed, but booking was saved:", emailError);
+    });
   }
 
-  return { message: "Booking saved successfully." };
+  console.log(`Booking saved successfully: ${data.id} for ${data.name}`);
+
+  return { message: "Booking saved successfully.", bookingId: data.id };
 }
 
 async function sendBookingEmail(booking: any) {
-  if (!resendApiKey || !adminEmail) {
-    console.warn("Email not configured - missing RESEND_API_KEY or ADMIN_EMAIL");
+  const resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
+
+  if (!resendApiKey) {
+    console.warn("Email not configured - missing RESEND_API_KEY");
+    return;
+  }
+
+  // Get branch email - either from booking data or lookup from branches table
+  let branchEmail = booking.branch_email || "";
+
+  if (!branchEmail && booking.branch_id) {
+    const adminClient = getAdminClient();
+    const { data: branch } = await adminClient
+      .from("branches")
+      .select("email")
+      .eq("id", booking.branch_id)
+      .maybeSingle();
+
+    branchEmail = branch?.email || "";
+  }
+
+  // Fallback to global admin email if branch email not found
+  const adminEmail = branchEmail || Deno.env.get("ADMIN_EMAIL") || "";
+
+  if (!adminEmail) {
+    console.warn("No email recipient found - neither branch email nor ADMIN_EMAIL is configured");
     return;
   }
 
   const resend = new Resend(resendApiKey);
 
   const emailHtml = `
-    <h2>New Booking Received</h2>
-    <p><strong>Branch:</strong> ${booking.branch_name || 'N/A'}</p>
-    <p><strong>Customer Name:</strong> ${booking.name}</p>
-    <p><strong>Phone:</strong> ${booking.phone || 'N/A'}</p>
-    <p><strong>Service:</strong> ${booking.service || 'N/A'}</p>
-    <p><strong>Date:</strong> ${booking.booking_date || 'N/A'}</p>
-    <p><strong>Time:</strong> ${booking.booking_time || 'N/A'}</p>
-    <p><strong>Female Therapists:</strong> ${booking.female_therapist_count} (${booking.female_therapists || 'N/A'})</p>
-    <p><strong>Male Therapists:</strong> ${booking.male_therapist_count} (${booking.male_therapists || 'N/A'})</p>
-    <p><strong>Service Cost:</strong> PHP ${booking.estimated_service_cost}</p>
-    <p><strong>Taxi Fare:</strong> PHP ${booking.taxi_fare}</p>
-    <p><strong>Total Estimate:</strong> PHP ${booking.total_estimate}</p>
-    <p><strong>Agreement:</strong> ${booking.agreement}</p>
-    <p><strong>Notes:</strong> ${booking.notes || 'None'}</p>
-    <p><strong>Status:</strong> ${booking.status}</p>
-    <p><strong>Booking ID:</strong> ${booking.id}</p>
-    <p><strong>Timestamp:</strong> ${new Date(booking.created_at).toLocaleString()}</p>
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .booking-details { background: #fff; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; }
+        .detail-row { margin-bottom: 10px; padding: 8px 0; border-bottom: 1px solid #f8f9fa; }
+        .detail-label { font-weight: bold; color: #495057; }
+        .highlight { background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 12px; color: #6c757d; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="color: #2c3e50; margin: 0;">🔔 New Booking Received</h1>
+          <p style="margin: 5px 0 0 0; color: #6c757d;">A new booking has been submitted</p>
+        </div>
+
+        <div class="booking-details">
+          <div class="detail-row">
+            <span class="detail-label">Branch:</span> ${booking.branch_name || 'N/A'}
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Customer Name:</span> ${booking.name}
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Phone:</span> ${booking.phone || 'N/A'}
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Service:</span> ${booking.service || 'N/A'}
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Date:</span> ${booking.booking_date || 'N/A'}
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Time:</span> ${booking.booking_time || 'N/A'}
+          </div>
+
+          <div class="highlight">
+            <div class="detail-row" style="border: none;">
+              <span class="detail-label">Female Therapists:</span> ${booking.female_therapist_count} (${booking.female_therapists || 'N/A'})
+            </div>
+            <div class="detail-row" style="border: none;">
+              <span class="detail-label">Male Therapists:</span> ${booking.male_therapist_count} (${booking.male_therapists || 'N/A'})
+            </div>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Service Cost:</span> PHP ${booking.estimated_service_cost?.toLocaleString() || '0'}
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Taxi Fare:</span> PHP ${booking.taxi_fare?.toLocaleString() || '0'}
+          </div>
+          <div class="detail-row" style="background: #d4edda; padding: 15px; border-radius: 5px;">
+            <span class="detail-label" style="color: #155724;">Total Estimate:</span>
+            <strong style="color: #155724; font-size: 18px;">PHP ${booking.total_estimate?.toLocaleString() || '0'}</strong>
+          </div>
+
+          <div class="detail-row">
+            <span class="detail-label">Agreement:</span> ${booking.agreement}
+          </div>
+          ${booking.notes ? `
+          <div class="detail-row">
+            <span class="detail-label">Notes:</span> ${booking.notes}
+          </div>
+          ` : ''}
+
+          <div class="detail-row">
+            <span class="detail-label">Status:</span> <span style="color: #007bff; font-weight: bold;">${booking.status}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Booking ID:</span> <code style="background: #f8f9fa; padding: 2px 4px; border-radius: 3px;">${booking.id}</code>
+          </div>
+          <div class="detail-row" style="border: none;">
+            <span class="detail-label">Submitted:</span> ${new Date(booking.created_at).toLocaleString()}
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>This booking was submitted through the Sensual Massage website.</p>
+          <p>Please log in to your admin panel to manage this booking.</p>
+        </div>
+      </div>
+    </body>
+    </html>
   `;
 
-  const { error } = await resend.emails.send({
-    from: "Sensual Massage <noreply@sensualmassage.com>",
-    to: adminEmail,
-    subject: `New Booking: ${booking.name} - ${booking.branch_name || 'Branch'}`,
-    html: emailHtml,
-  });
+  try {
+    const subjectDate = booking.booking_date ? ` - ${booking.booking_date}` : '';
+    const { error } = await resend.emails.send({
+      from: "Sensual Massage <noreply@sensualmassage.com>",
+      to: adminEmail,
+      subject: `🔔 New Booking: ${booking.name} - ${booking.branch_name || 'Branch'}${subjectDate}`,
+      html: emailHtml,
+    });
 
-  if (error) {
-    throw error;
+    if (error) {
+      console.error("Failed to send booking email:", error);
+      throw error;
+    }
+
+    console.log(`Booking email sent successfully to ${adminEmail} for booking ${booking.id}`);
+  } catch (error) {
+    console.error("Error sending booking email:", error);
+    // Don't throw - we don't want email failures to break booking creation
   }
 }
 
