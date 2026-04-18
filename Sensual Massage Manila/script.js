@@ -1617,7 +1617,7 @@ function renderQrVisual(value, label, icon) {
     <div class="qr-code-shell">
       <img src="${escapeAttribute(buildQrCodeUrl(value))}" alt="${escapeAttribute(`${label} QR code`)}">
       <span class="qr-center-badge qr-center-badge-${escapeAttribute(icon)}" aria-hidden="true">
-        ${getIconSvg(icon)}
+        <img src="assets/${escapeAttribute(icon)}.png" alt="${escapeAttribute(icon)} icon" class="qr-center-icon">
       </span>
     </div>
   `;
