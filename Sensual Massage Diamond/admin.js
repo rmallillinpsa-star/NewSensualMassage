@@ -467,11 +467,11 @@ function renderAdminField(field, value) {
 
   if (field.key === "branch") {
     const branches = adminState.data.branches || [];
-    const optionsHtml = branches.map(branch => `<option value="${escapeAttribute(branch.id)}"${branch.id === normalizedValue ? ' selected' : ''}>${escapeHtml(branch.name)}</option>`).join('');
+    const optionsHtml = `${field.allowBlank ? `<option value="">${escapeHtml(field.blankLabel || "Select branch")}</option>` : ""}${branches.map(branch => `<option value="${escapeAttribute(branch.name)}"${String(branch.name) === String(normalizedValue) ? ' selected' : ''}>${escapeHtml(branch.name)}</option>`).join('')}`;
     return `
       <label class="admin-field">
         <span>${escapeHtml(field.label)}</span>
-        <select data-field="${field.key}">
+        <select data-field="${field.key}" ${field.required ? "required" : ""}>
           ${optionsHtml}
         </select>
       </label>

@@ -381,7 +381,12 @@ async function buildBranchMaps(adminClient: ReturnType<typeof getAdminClient>) {
   if (error) throw error;
   const branchIdByName = new Map<string, string>();
   (data || []).forEach((row) => {
-    branchIdByName.set(String(row.name || "").trim(), row.id);
+    const id = String(row.id || "").trim();
+    const name = String(row.name || "").trim();
+    const slug = String(row.slug || "").trim();
+    if (name) branchIdByName.set(name, id);
+    if (id) branchIdByName.set(id, id);
+    if (slug) branchIdByName.set(slug, id);
   });
   return { branchIdByName };
 }
