@@ -2,7 +2,9 @@ const adminConfig = window.SITE_CONFIG || {};
 const adminApiBaseUrl = adminConfig.apiBaseUrl || "";
 const adminSupabaseUrl = adminConfig.supabaseUrl || "";
 const adminSupabaseAnonKey = adminConfig.supabaseAnonKey || "";
-const adminSessionStorageKey = "sensual-admin-api-key";
+const adminSessionStorageKey = "sensual-admin-session";
+
+const supabase = window.supabase.createClient(adminSupabaseUrl, adminSupabaseAnonKey);
 
 async function withTimeout(promise, ms, timeoutMessage) {
   let timeoutId;
@@ -34,7 +36,8 @@ const adminSheetDefinitions = {
     entryLabel: "Branch",
     fields: [
       { key: "id", type: "hidden", readOnly: true },
-      { key: "id", type: "hidden", readOnly: true },
+      { key: "site_key", label: "Site Key", required: true, defaultValue: "diamond" },
+      { key: "slug", label: "Slug", placeholder: "makati-branch", required: true },
       { key: "name", label: "Branch Name", placeholder: "Example: Makati Branch", required: true },
       { key: "address", label: "Address", type: "textarea", placeholder: "Full branch address", required: true },
       { key: "phone", label: "Phone", placeholder: "+63 917 000 0000" },
@@ -193,10 +196,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     logoutButton.addEventListener("click", logoutAdmin);
   }
 
-  const savedApiKey = localStorage.getItem(adminSessionStorageKey);
-
-  if (savedApiKey) {
-    adminState.token = savedApiKey;
+  // Check if already logged in
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    adminState.token = session.access_token;
     showAdminApp(true);
     loadAdminData();
   }
@@ -215,15 +218,28 @@ async function handleAdminLogin(event) {
   }
 
   try {
-    const apiKey = String(payload.apikey || payload.password || "").trim();
+    const email = String(payload.email || "").trim();
+    const password = String(payload.password || "").trim();
 
-    if (!apiKey) {
-      throw new Error("Please enter your admin API key.");
+    if (!email || !password) {
+      throw new Error("Please enter your email and password.");
     }
 
-    // Store the API key locally
-    adminState.token = apiKey;
-    localStorage.setItem(adminSessionStorageKey, apiKey);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data.session) {
+      throw new Error("Login failed.");
+    }
+
+    // Store the session
+    adminState.token = data.session.access_token;
     form.reset();
 
     if (status) {
@@ -993,16 +1009,17 @@ function showAdminApp(isVisible) {
 async function clearAdminSession() {
   adminState.token = "";
   adminState.data = {};
-  localStorage.removeItem(adminSessionStorageKey);
 }
 
 async function logoutAdmin() {
+  await supabase.auth.signOut();
   await clearAdminSession();
   showAdminApp(false);
 }
 
-function getAdminToken() {
-  return window.SITE_CONFIG?.adminApiKey || "";
+async function getAdminToken() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token || "";
 }
 
 async function postAdminAction(payload) {
@@ -1010,13 +1027,13 @@ async function postAdminAction(payload) {
     throw new Error("Admin API URL is missing.");
   }
 
-  const apiKey = getAdminToken();
+  const token = await getAdminToken();
   const headers = {
     "Content-Type": "application/json"
   };
 
-  if (apiKey) {
-    headers["x-api-key"] = apiKey;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const response = await withTimeout(

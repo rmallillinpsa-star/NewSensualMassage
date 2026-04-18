@@ -7,5 +7,5 @@ window.SITE_CONFIG = {
   bookingEndpoint: "https://zbagbzgrithrjwcfktda.supabase.co/functions/v1/site-api",
   supabaseUrl: "https://zbagbzgrithrjwcfktda.supabase.co",
   supabaseAnonKey: "sb_publishable_s1CacFEIUuNL0eN2LEmbkg_Dy7qxRWC",
-  adminApiKey: "your-secret-admin-key-here"
+  adminApiKey: "admin-secret-123"
 };
