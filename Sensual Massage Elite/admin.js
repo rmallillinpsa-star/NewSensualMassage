@@ -1028,7 +1028,19 @@ async function postAdminAction(payload) {
   const result = await response.json();
 
   if (!response.ok || !result.success) {
-    throw new Error(result.message || "Request failed.");
+    let errorMessage = "Request failed.";
+    if (result && typeof result === "object") {
+      if (typeof result.message === "string" && result.message.trim()) {
+        errorMessage = result.message;
+      } else if (result.message != null) {
+        errorMessage = JSON.stringify(result.message, Object.keys(result.message).sort(), 2);
+      } else if (typeof result.error === "string" && result.error.trim()) {
+        errorMessage = result.error;
+      } else if (result.error != null) {
+        errorMessage = JSON.stringify(result.error, Object.keys(result.error).sort(), 2);
+      }
+    }
+    throw new Error(errorMessage);
   }
 
   return result;

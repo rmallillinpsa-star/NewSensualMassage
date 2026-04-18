@@ -455,21 +455,28 @@ async function saveServices(adminClient: ReturnType<typeof getAdminClient>, rows
 
 async function saveStaff(adminClient: ReturnType<typeof getAdminClient>, rows: Record<string, unknown>[]) {
   const { branchIdByName } = await buildBranchMaps(adminClient);
-  const staffRows = rows.map((row, index) => ({
-    branch_id: branchIdByName.get(normalizeText(row.branch)) || null,
-    name: normalizeText(row.name),
-    slug: normalizeSlug(row.slug || row.name || `staff-${index + 1}`),
-    gender: normalizeText(row.gender) === "Male" ? "Male" : "Female",
-    role: normalizeText(row.role),
-    specialty: normalizeText(row.specialty),
-    age: normalizeText(row.age) ? parseNumberValue(row.age) : null,
-    height: normalizeText(row.height),
-    weight: normalizeText(row.weight),
-    bio: normalizeText(row.bio),
-    active: toDbBoolean(row.active),
-    sort_order: index,
-    __imageUrls: parseImageUrls(row.image_urls)
-  })).filter((row) => row.name);
+  const staffRows = rows.map((row, index) => {
+    const branchName = normalizeText(row.branch);
+    const branchId = branchIdByName.get(branchName);
+    if (!branchId) {
+      throw new Error(`Invalid branch "${branchName}" for staff member "${normalizeText(row.name)}". Please select a valid branch.`);
+    }
+    return {
+      branch_id: branchId,
+      name: normalizeText(row.name),
+      slug: normalizeSlug(row.slug || row.name || `staff-${index + 1}`),
+      gender: normalizeText(row.gender) === "Male" ? "Male" : "Female",
+      role: normalizeText(row.role),
+      specialty: normalizeText(row.specialty),
+      age: normalizeText(row.age) ? parseNumberValue(row.age) : null,
+      height: normalizeText(row.height),
+      weight: normalizeText(row.weight),
+      bio: normalizeText(row.bio),
+      active: toDbBoolean(row.active),
+      sort_order: index,
+      __imageUrls: parseImageUrls(row.image_urls)
+    };
+  }).filter((row) => row.name);
 
   const insertRows = staffRows.map(({ __imageUrls, ...row }) => row);
   await replaceTableRows(adminClient, adminManagedTables.staff, insertRows);
@@ -662,7 +669,19 @@ Deno.serve(async (request) => {
 
     return json({ success: false, message: "Invalid action." }, 400);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error || "Unexpected error.");
+    let message = "Unexpected error.";
+    if (error instanceof Error) {
+      message = error.message;
+    } else if (error && typeof error === "object") {
+      const maybeMessage = (error as Record<string, unknown>).message;
+      if (typeof maybeMessage === "string" && maybeMessage.trim()) {
+        message = maybeMessage;
+      } else {
+        message = JSON.stringify(error, Object.keys(error).sort(), 2);
+      }
+    } else if (error != null) {
+      message = String(error);
+    }
     console.error("Edge Function Error:", message, error);
     return json({
       success: false,
