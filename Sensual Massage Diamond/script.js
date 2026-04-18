@@ -329,6 +329,7 @@ function updateBranchLocationMap(branches) {
 }
 
 function renderServicesPage(siteData) {
+  renderServiceCards(siteData.services || []);
   renderRateCards(siteData.rates || []);
   renderSocialLinks();
 }
