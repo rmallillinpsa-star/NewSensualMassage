@@ -96,21 +96,16 @@ async function assertAdmin(request: Request) {
     throw new Error("Missing bearer token.");
   }
 
-  // Create a client with anon key for user authentication
-  const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") || "", {
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
-
+  const adminClient = getAdminClient();
   const {
     data: { user },
     error
-  } = await anonClient.auth.getUser(token);
+  } = await adminClient.auth.getUser(token);
 
   if (error || !user) {
     throw new Error("Invalid user session.");
   }
 
-  const adminClient = getAdminClient();
   const { data: profile, error: profileError } = await adminClient
     .from("admin_profiles")
     .select("user_id, is_active")
