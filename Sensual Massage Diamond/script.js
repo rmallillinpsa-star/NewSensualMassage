@@ -1612,13 +1612,9 @@ function renderQrCard(label, value, icon) {
 }
 
 function renderQrVisual(value, label, icon) {
-  const iconPath = `assets/${escapeAttribute(icon)}.png`;
   return `
     <div class="qr-code-shell">
       <img src="${escapeAttribute(buildQrCodeUrl(value))}" alt="${escapeAttribute(`${label} QR code`)}">
-      <div class="qr-center-badge qr-center-badge-${escapeAttribute(icon)}">
-        <img src="${escapeAttribute(iconPath)}" alt="${escapeAttribute(icon)} icon" class="qr-center-icon" onerror="this.style.display='none'">
-      </div>
     </div>
   `;
 }

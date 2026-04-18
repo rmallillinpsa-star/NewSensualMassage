@@ -676,10 +676,13 @@ h3 {
 
 .branch-qr-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem;
-  align-items: stretch;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.75rem;
+  align-items: center;
   justify-items: center;
+  margin-top: 1rem;
+  width: 100%;
+  grid-column: 1 / -1;
 }
 
 .qr-card-mini,
