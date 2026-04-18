@@ -5,7 +5,7 @@ const adminSupabaseAnonKey = adminConfig.supabaseAnonKey || "";
 const adminApiKey = adminConfig.adminApiKey || "";
 const adminSessionStorageKey = "sensual-admin-session";
 
-const supabase = window.supabase.createClient(adminSupabaseUrl, adminSupabaseAnonKey);
+const supabaseClient = window.supabase.createClient(adminSupabaseUrl, adminSupabaseAnonKey);
 
 async function withTimeout(promise, ms, timeoutMessage) {
   let timeoutId;
@@ -198,7 +198,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Check if already logged in
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) {
     adminState.token = session.access_token;
     showAdminApp(true);
@@ -226,7 +226,7 @@ async function handleAdminLogin(event) {
       throw new Error("Please enter your email and password.");
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
       email,
       password
     });
@@ -816,7 +816,7 @@ async function uploadFilesToStorage(files, sheetKey, fieldKey) {
     const safeName = sanitizeFileName(file.name || "upload");
     const filePath = `admin/${sheetKey}/${fieldKey}/${Date.now()}-${createRandomId()}-${safeName}${extension}`;
 
-    const { error } = await supabase.storage.from("site-media").upload(filePath, file, {
+    const { error } = await supabaseClient.storage.from("site-media").upload(filePath, file, {
       cacheControl: "3600",
       upsert: false
     });
@@ -825,7 +825,7 @@ async function uploadFilesToStorage(files, sheetKey, fieldKey) {
       throw new Error(error.message || "Upload failed.");
     }
 
-    const { data } = supabase.storage.from("site-media").getPublicUrl(filePath);
+    const { data } = supabaseClient.storage.from("site-media").getPublicUrl(filePath);
     uploadedUrls.push(String(data?.publicUrl || "").trim());
   }
 
@@ -1012,13 +1012,13 @@ async function clearAdminSession() {
 }
 
 async function logoutAdmin() {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   await clearAdminSession();
   showAdminApp(false);
 }
 
 async function getAdminToken() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
   return session?.access_token || "";
 }
 
