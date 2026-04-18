@@ -483,7 +483,7 @@ function renderAdminField(field, value) {
     return `
       <label class="admin-field">
         <span>${escapeHtml(field.label)}</span>
-        <select data-field="${field.key}" ${field.readOnly ? "disabled" : ""}>
+        <select data-field="${field.key}" ${field.readOnly ? "disabled" : ""} ${field.required ? "required" : ""}>
           ${field.allowBlank ? `<option value="">${escapeHtml(field.blankLabel || "Select option")}</option>` : ""}
           ${options.map((option) => `<option value="${escapeAttribute(option)}"${String(normalizedValue) === String(option) ? " selected" : ""}>${escapeHtml(option)}</option>`).join("")}
         </select>
@@ -494,7 +494,7 @@ function renderAdminField(field, value) {
   return `
     <label class="admin-field">
       <span>${escapeHtml(field.label)}</span>
-      <input type="${escapeAttribute(field.type || "text")}" data-field="${field.key}" value="${escapeAttribute(normalizedValue)}" placeholder="${escapeAttribute(field.placeholder || "")}" ${field.readOnly ? "readonly" : ""}>
+      <input type="${escapeAttribute(field.type || "text")}" data-field="${field.key}" value="${escapeAttribute(normalizedValue)}" placeholder="${escapeAttribute(field.placeholder || "")}" ${field.readOnly ? "readonly" : ""} ${field.required ? "required" : ""}>
       ${uploadControl}
     </label>
   `;
