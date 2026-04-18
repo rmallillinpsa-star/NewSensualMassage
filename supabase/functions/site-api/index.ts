@@ -82,6 +82,146 @@ function extractDriveFileId(value: unknown): string {
   return match ? match[1] : "";
 }
 
+// ========== CONSISTENT DATA TRANSFORMERS ==========
+function transformBranch(b: any) {
+  return {
+    id: b.id,
+    name: normalizeText(b.name),
+    address: normalizeText(b.address),
+    phone: normalizeText(b.phone),
+    email: normalizeText(b.email),
+    whatsapp_number: normalizeText(b.whatsapp_number),
+    viber_number: normalizeText(b.viber_number),
+    wechat_id: normalizeText(b.wechat_id),
+    telegram_username: normalizeText(b.telegram_username),
+    map_link: normalizeText(b.map_link),
+    logo_url: normalizeText(b.logo_url),
+    logo_file_id: extractDriveFileId(b.logo_url || b.logo_path),
+    active: toBooleanString(b.active)
+  };
+}
+
+function transformService(s: any, branchMap: Map<string, string>) {
+  return {
+    id: s.id,
+    branch_id: s.branch_id || null,
+    branch: s.branch_id ? (branchMap.get(s.branch_id) || "") : "",
+    name: normalizeText(s.name),
+    description: normalizeText(s.description),
+    duration: normalizeText(s.duration),
+    female_rate: String(s.female_rate ?? ""),
+    male_rate: String(s.male_rate ?? ""),
+    category: normalizeText(s.category),
+    active: toBooleanString(s.active)
+  };
+}
+
+function transformStaff(s: any, branchMap: Map<string, string>, imageMap: Map<string, string[]>) {
+  return {
+    id: s.id,
+    branch_id: s.branch_id || null,
+    branch: branchMap.get(s.branch_id) || "",
+    name: normalizeText(s.name),
+    gender: normalizeText(s.gender) || "Female",
+    role: normalizeText(s.role),
+    specialty: normalizeText(s.specialty),
+    age: s.age ?? "",
+    height: normalizeText(s.height),
+    weight: normalizeText(s.weight),
+    image_urls: (imageMap.get(s.id) || []).join("\n"),
+    bio: normalizeText(s.bio),
+    active: toBooleanString(s.active)
+  };
+}
+
+function transformPromo(p: any, branchMap: Map<string, string>) {
+  return {
+    id: p.id,
+    branch_id: p.branch_id || null,
+    branch: p.branch_id ? (branchMap.get(p.branch_id) || "") : "",
+    title: normalizeText(p.title),
+    description: normalizeText(p.description),
+    label: normalizeText(p.label),
+    active: toBooleanString(p.active)
+  };
+}
+
+function transformSlide(s: any, branchMap: Map<string, string>) {
+  return {
+    id: s.id,
+    branch_id: s.branch_id || null,
+    branch: s.branch_id ? (branchMap.get(s.branch_id) || "") : "",
+    title: normalizeText(s.title),
+    subtitle: normalizeText(s.subtitle),
+    image_url: normalizeText(s.image_url),
+    alt_text: normalizeText(s.alt_text),
+    button_text: normalizeText(s.button_text),
+    button_link: normalizeText(s.button_link),
+    active: toBooleanString(s.active)
+  };
+}
+
+function transformHomeSection(h: any, branchMap: Map<string, string>) {
+  return {
+    id: h.id,
+    branch_id: h.branch_id || null,
+    branch: h.branch_id ? (branchMap.get(h.branch_id) || "") : "",
+    section_key: normalizeText(h.section_key),
+    title: normalizeText(h.title),
+    description: normalizeText(h.description),
+    image_url: normalizeText(h.image_url),
+    button_text: normalizeText(h.button_text),
+    button_link: normalizeText(h.button_link),
+    active: toBooleanString(h.active)
+  };
+}
+
+function transformRate(r: any, branchMap: Map<string, string>) {
+  return {
+    id: r.id,
+    branch_id: r.branch_id || null,
+    branch: r.branch_id ? (branchMap.get(r.branch_id) || "") : "",
+    key: normalizeText(r.key),
+    label: normalizeText(r.label),
+    amount: String(r.amount ?? ""),
+    category: normalizeText(r.category),
+    active: toBooleanString(r.active)
+  };
+}
+
+function transformSetting(s: any) {
+  return {
+    id: s.id,
+    key: normalizeText(s.key),
+    value: normalizeText(s.value)
+  };
+}
+
+function transformBooking(b: any, branchMap: Map<string, string>) {
+  return {
+    id: b.id,
+    branch_id: b.branch_id || null,
+    branch: b.branch_name || (b.branch_id ? (branchMap.get(b.branch_id) || "") : ""),
+    timestamp: b.created_at || b.timestamp || "",
+    name: normalizeText(b.name),
+    email: normalizeText(b.email),
+    phone: normalizeText(b.phone),
+    service: normalizeText(b.service),
+    female_therapist_count: String(b.female_therapist_count ?? 0),
+    male_therapist_count: String(b.male_therapist_count ?? 0),
+    date: normalizeText(b.booking_date),
+    time: normalizeText(b.booking_time),
+    female_therapists: normalizeText(b.female_therapists),
+    male_therapists: normalizeText(b.male_therapists),
+    estimated_service_cost: String(b.estimated_service_cost ?? 0),
+    taxi_fare: String(b.taxi_fare ?? 0),
+    total_estimate: String(b.total_estimate ?? 0),
+    agreement: normalizeText(b.agreement) || "No",
+    notes: normalizeText(b.notes),
+    status: normalizeText(b.status) || "New"
+  };
+}
+
 // ========== DATA ENDPOINTS ==========
 async function getSiteData() {
   try {
@@ -110,17 +250,17 @@ async function getSiteData() {
     (settings || [])
       .filter((s: any) => !s.branch_id)
       .forEach((s: any) => {
-        settingsMap[s.key] = s.value;
+        settingsMap[normalizeText(s.key)] = normalizeText(s.value);
       });
 
     return {
-      branches: (branches || []).map((b: any) => ({ ...b, __rowIndex: b.sort_order || 0 })),
-      services: (services || []).map((s: any) => ({ ...s, branch: s.branch_id ? branchMap.get(s.branch_id) || "" : "", __rowIndex: s.sort_order || 0 })),
-      staff: (staff || []).map((s: any) => ({ ...s, branch: branchMap.get(s.branch_id) || "", image_urls: (imageMap.get(s.id) || []).join("\n"), __rowIndex: s.sort_order || 0 })),
-      promos: (promos || []).map((p: any) => ({ ...p, branch: p.branch_id ? branchMap.get(p.branch_id) || "" : "", __rowIndex: p.sort_order || 0 })),
-      slides: (slides || []).map((s: any) => ({ ...s, branch: s.branch_id ? branchMap.get(s.branch_id) || "" : "", __rowIndex: s.sort_order || 0 })),
-      home_sections: (homeSections || []).map((h: any) => ({ ...h, branch: h.branch_id ? branchMap.get(h.branch_id) || "" : "", __rowIndex: h.sort_order || 0 })),
-      rates: (rates || []).map((r: any) => ({ ...r, branch: r.branch_id ? branchMap.get(r.branch_id) || "" : "", __rowIndex: r.sort_order || 0 })),
+      branches: (branches || []).map(transformBranch),
+      services: (services || []).map((s: any) => transformService(s, branchMap)),
+      staff: (staff || []).map((s: any) => transformStaff(s, branchMap, imageMap)),
+      promos: (promos || []).map((p: any) => transformPromo(p, branchMap)),
+      slides: (slides || []).map((s: any) => transformSlide(s, branchMap)),
+      home_sections: (homeSections || []).map((h: any) => transformHomeSection(h, branchMap)),
+      rates: (rates || []).map((r: any) => transformRate(r, branchMap)),
       settings: settingsMap
     };
   } catch (error) {
@@ -135,17 +275,22 @@ async function createBooking(payload: Record<string, unknown>) {
     let branchId: string | null = null;
 
     if (branchName) {
-      const branches = await supabaseRest("GET", "/branches", undefined, {
-        select: "id",
-        name: `eq.${branchName}`
-      });
-      branchId = branches?.[0]?.id || null;
+      try {
+        const branches = await supabaseRest("GET", "/branches", undefined, {
+          select: "id",
+          name: `eq.${encodeURIComponent(branchName)}`
+        });
+        branchId = branches?.[0]?.id || null;
+      } catch (err) {
+        console.warn("Could not fetch branch, proceeding with branchId=null", err);
+      }
     }
 
     const bookingRecord = {
       branch_id: branchId,
       branch_name: branchName,
       name: normalizeText(payload.name),
+      email: normalizeText(payload.email),
       phone: normalizeText(payload.phone),
       service: normalizeText(payload.service),
       female_therapist_count: Number(payload.female_therapist_count) || 0,
@@ -163,8 +308,12 @@ async function createBooking(payload: Record<string, unknown>) {
       created_at: new Date().toISOString()
     };
 
-    await supabaseRest("POST", "/bookings", bookingRecord);
-    return { message: "Booking created successfully", success: true };
+    const result = await supabaseRest("POST", "/bookings", bookingRecord);
+    return { 
+      message: "Booking created successfully", 
+      success: true,
+      data: result?.[0] || { id: "pending" }
+    };
   } catch (error) {
     console.error("createBooking error:", error);
     throw error;
@@ -198,118 +347,15 @@ async function getAdminData(request: Request) {
     });
 
     return {
-      branches: (branches || []).map((b: any) => ({
-        id: b.id,
-        name: b.name,
-        address: b.address || "",
-        phone: b.phone || "",
-        email: b.email || "",
-        whatsapp_number: b.whatsapp_number || "",
-        viber_number: b.viber_number || "",
-        wechat_id: b.wechat_id || "",
-        telegram_username: b.telegram_username || "",
-        map_link: b.map_link || "",
-        logo_url: b.logo_url || "",
-        logo_file_id: extractDriveFileId(b.logo_url || b.logo_path || ""),
-        active: toBooleanString(b.active)
-      })),
-      services: (services || []).map((s: any) => ({
-        id: s.id,
-        branch_id: s.branch_id || null,
-        branch: s.branch_id ? branchMap.get(s.branch_id) || "" : "",
-        name: s.name,
-        description: s.description || "",
-        duration: s.duration || "",
-        female_rate: String(s.female_rate ?? ""),
-        male_rate: String(s.male_rate ?? ""),
-        category: s.category || "",
-        active: toBooleanString(s.active)
-      })),
-      staff: (staff || []).map((s: any) => ({
-        id: s.id,
-        branch_id: s.branch_id || null,
-        branch: branchMap.get(s.branch_id) || "",
-        name: s.name,
-        gender: s.gender || "Female",
-        role: s.role || "",
-        specialty: s.specialty || "",
-        age: s.age ?? "",
-        height: s.height || "",
-        weight: s.weight || "",
-        image_urls: (imageMap.get(s.id) || []).join("\n"),
-        bio: s.bio || "",
-        active: toBooleanString(s.active)
-      })),
-      promos: (promos || []).map((p: any) => ({
-        id: p.id,
-        branch_id: p.branch_id || null,
-        branch: p.branch_id ? branchMap.get(p.branch_id) || "" : "",
-        title: p.title,
-        description: p.description || "",
-        label: p.label || "",
-        active: toBooleanString(p.active)
-      })),
-      slides: (slides || []).map((s: any) => ({
-        id: s.id,
-        branch_id: s.branch_id || null,
-        branch: s.branch_id ? branchMap.get(s.branch_id) || "" : "",
-        title: s.title || "",
-        subtitle: s.subtitle || "",
-        image_url: s.image_url || "",
-        alt_text: s.alt_text || "",
-        button_text: s.button_text || "",
-        button_link: s.button_link || "",
-        active: toBooleanString(s.active)
-      })),
-      home_sections: (homeSections || []).map((h: any) => ({
-        id: h.id,
-        branch_id: h.branch_id || null,
-        branch: h.branch_id ? branchMap.get(h.branch_id) || "" : "",
-        section_key: h.section_key,
-        title: h.title,
-        description: h.description || "",
-        image_url: h.image_url || "",
-        button_text: h.button_text || "",
-        button_link: h.button_link || "",
-        active: toBooleanString(h.active)
-      })),
-      rates: (rates || []).map((r: any) => ({
-        id: r.id,
-        branch_id: r.branch_id || null,
-        branch: r.branch_id ? branchMap.get(r.branch_id) || "" : "",
-        key: r.key,
-        label: r.label,
-        amount: String(r.amount ?? ""),
-        category: r.category || "service",
-        active: toBooleanString(r.active)
-      })),
-      settings: (settings || []).map((s: any) => ({
-        id: s.id,
-        key: s.key,
-        value: s.value
-      })),
-      bookings: (bookings || []).map((b: any) => ({
-        id: b.id,
-        branch_id: b.branch_id || null,
-        branch: b.branch_name || (b.branch_id ? branchMap.get(b.branch_id) || "" : ""),
-        timestamp: b.created_at || b.timestamp || "",
-        name: b.name || "",
-        email: b.email || "",
-        phone: b.phone || "",
-        service: b.service || "",
-        female_therapist_count: String(b.female_therapist_count ?? 0),
-        male_therapist_count: String(b.male_therapist_count ?? 0),
-        date: b.booking_date || "",
-        time: b.booking_time || "",
-        female_therapists: b.female_therapists || "",
-        male_therapists: b.male_therapists || "",
-        estimated_service_cost: String(b.estimated_service_cost ?? 0),
-        taxi_fare: String(b.taxi_fare ?? 0),
-        total_estimate: String(b.total_estimate ?? 0),
-        agreement: b.agreement || "No",
-        notes: b.notes || "",
-        status: b.status || "New"
-      }))
+      branches: (branches || []).map(transformBranch),
+      services: (services || []).map((s: any) => transformService(s, branchMap)),
+      staff: (staff || []).map((s: any) => transformStaff(s, branchMap, imageMap)),
+      promos: (promos || []).map((p: any) => transformPromo(p, branchMap)),
+      slides: (slides || []).map((s: any) => transformSlide(s, branchMap)),
+      home_sections: (homeSections || []).map((h: any) => transformHomeSection(h, branchMap)),
+      rates: (rates || []).map((r: any) => transformRate(r, branchMap)),
+      settings: (settings || []).map(transformSetting),
+      bookings: (bookings || []).map((b: any) => transformBooking(b, branchMap))
     };
   } catch (error) {
     console.error("getAdminData error:", error);
