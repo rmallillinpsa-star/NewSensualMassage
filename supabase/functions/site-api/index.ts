@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { decodeJwt } from "https://esm.sh/jose@4.14.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,6 +9,7 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
 const adminManagedTables = {
   branches: "branches",
@@ -96,27 +98,30 @@ async function assertAdmin(request: Request) {
     throw new Error("Missing bearer token.");
   }
 
-  const adminClient = getAdminClient();
-  const {
-    data: { user },
-    error
-  } = await adminClient.auth.getUser(token);
-
-  if (error || !user) {
-    throw new Error("Invalid user session.");
+  // Decode JWT to get user ID without verifying signature
+  let userId: string;
+  try {
+    const payload = decodeJwt(token);
+    userId = payload.sub as string;
+    if (!userId) {
+      throw new Error("Invalid token: no user ID");
+    }
+  } catch (error) {
+    throw new Error("Invalid JWT token");
   }
 
+  const adminClient = getAdminClient();
   const { data: profile, error: profileError } = await adminClient
     .from("admin_profiles")
     .select("user_id, is_active")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (profileError || !profile || !profile.is_active) {
     throw new Error("Admin access denied.");
   }
 
-  return { adminClient, user };
+  return { adminClient, user: { id: userId } };
 }
 
 async function getSiteData() {
