@@ -2,8 +2,7 @@ const adminConfig = window.SITE_CONFIG || {};
 const adminApiBaseUrl = adminConfig.apiBaseUrl || "";
 const adminSupabaseUrl = adminConfig.supabaseUrl || "";
 const adminSupabaseAnonKey = adminConfig.supabaseAnonKey || "";
-const adminSessionStorageKey = "supabaseAdminSession";
-let supabaseClient = null;
+const adminSessionStorageKey = "sensual-admin-api-key";
 
 async function withTimeout(promise, ms, timeoutMessage) {
   let timeoutId;
@@ -184,7 +183,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  initializeSupabaseClient();
   loginForm.addEventListener("submit", handleAdminLogin);
 
   if (refreshButton) {
@@ -195,53 +193,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     logoutButton.addEventListener("click", logoutAdmin);
   }
 
-  const savedToken = await restoreAdminSession();
+  const savedApiKey = localStorage.getItem(adminSessionStorageKey);
 
-  if (savedToken) {
-    adminState.token = savedToken;
+  if (savedApiKey) {
+    adminState.token = savedApiKey;
     showAdminApp(true);
     loadAdminData();
   }
 });
-
-function initializeSupabaseClient() {
-  if (supabaseClient) {
-    return supabaseClient;
-  }
-
-  if (!adminSupabaseUrl || !adminSupabaseAnonKey || !window.supabase || !window.supabase.createClient) {
-    return null;
-  }
-
-  supabaseClient = window.supabase.createClient(adminSupabaseUrl, adminSupabaseAnonKey, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      storageKey: adminSessionStorageKey
-    }
-  });
-
-  return supabaseClient;
-}
-
-async function restoreAdminSession() {
-  const client = initializeSupabaseClient();
-
-  if (!client) {
-    return "";
-  }
-
-  const { data, error } = await client.auth.getSession();
-  if (error || !data?.session?.access_token) {
-    console.warn("Failed to restore admin session.", error);
-    await clearAdminSession();
-    return "";
-  }
-
-  const accessToken = String(data.session.access_token).trim();
-  adminState.token = accessToken;
-  return accessToken;
-}
 
 async function handleAdminLogin(event) {
   event.preventDefault();
@@ -251,35 +210,24 @@ async function handleAdminLogin(event) {
   const payload = Object.fromEntries(new FormData(form).entries());
 
   if (status) {
-    status.textContent = "Logging in...";
+    status.textContent = "Authenticating...";
     status.classList.remove("is-error", "is-success");
   }
 
   try {
-    const client = initializeSupabaseClient();
+    const apiKey = String(payload.apikey || payload.password || "").trim();
 
-    if (!client) {
-      throw new Error("Supabase admin login is not configured yet.");
+    if (!apiKey) {
+      throw new Error("Please enter your admin API key.");
     }
 
-    const { data, error } = await withTimeout(
-      client.auth.signInWithPassword({
-        email: String(payload.email || "").trim(),
-        password: String(payload.password || "")
-      }),
-      15000,
-      "Login request timed out. Check your internet connection and try again."
-    );
-
-    if (error || !data.session) {
-      throw new Error(error?.message || "Login failed.");
-    }
-
-    adminState.token = data.session.access_token || "";
+    // Store the API key locally
+    adminState.token = apiKey;
+    localStorage.setItem(adminSessionStorageKey, apiKey);
     form.reset();
 
     if (status) {
-      status.textContent = "Login successful.";
+      status.textContent = "Authentication successful.";
       status.classList.add("is-success");
     }
 
@@ -287,7 +235,7 @@ async function handleAdminLogin(event) {
     await loadAdminData();
   } catch (error) {
     if (status) {
-      status.textContent = error.message || "Login failed.";
+      status.textContent = error.message || "Authentication failed.";
       status.classList.add("is-error");
     }
   }
@@ -843,11 +791,6 @@ async function handleAdminFileUpload(event) {
 }
 
 async function uploadFilesToStorage(files, sheetKey, fieldKey) {
-  const client = initializeSupabaseClient();
-
-  if (!client) {
-    throw new Error("Supabase is not configured for uploads.");
-  }
 
   const safeFiles = files.slice(0, fieldKey === "image_urls" ? 10 : 1);
   const uploadedUrls = [];
@@ -1050,10 +993,7 @@ function showAdminApp(isVisible) {
 async function clearAdminSession() {
   adminState.token = "";
   adminState.data = {};
-  const client = initializeSupabaseClient();
-  if (client) {
-    await client.auth.signOut();
-  }
+  localStorage.removeItem(adminSessionStorageKey);
 }
 
 async function logoutAdmin() {
