@@ -259,10 +259,9 @@ async function handleAdminLogin(event) {
 }
 
 async function loadAdminData() {
-  const token = getAdminToken();
   const panels = document.querySelector("[data-admin-panels]");
 
-  if (!token || !panels) {
+  if (!panels) {
     return;
   }
 
@@ -1031,7 +1030,7 @@ async function postAdminAction(payload) {
   const token = await getAdminToken();
   const headers = {
     "Content-Type": "application/json",
-    apikey: adminSupabaseAnonKey || ""
+    apikey: adminApiKey || adminSupabaseAnonKey || ""
   };
 
   if (adminApiKey) {
