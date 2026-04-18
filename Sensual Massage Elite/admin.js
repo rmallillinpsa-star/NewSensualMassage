@@ -1058,7 +1058,7 @@ async function logoutAdmin() {
 }
 
 function getAdminToken() {
-  return adminState.token || "";
+  return window.SITE_CONFIG?.adminApiKey || "";
 }
 
 async function postAdminAction(payload) {
@@ -1066,13 +1066,13 @@ async function postAdminAction(payload) {
     throw new Error("Admin API URL is missing.");
   }
 
-  const token = getAdminToken();
+  const apiKey = getAdminToken();
   const headers = {
     "Content-Type": "application/json"
   };
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+  if (apiKey) {
+    headers["x-api-key"] = apiKey;
   }
 
   const response = await withTimeout(
