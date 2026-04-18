@@ -1029,7 +1029,8 @@ async function postAdminAction(payload) {
 
   const token = await getAdminToken();
   const headers = {
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
+    apikey: adminSupabaseAnonKey || ""
   };
 
   if (token) {

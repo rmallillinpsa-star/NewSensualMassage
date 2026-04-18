@@ -1,0 +1,4 @@
+# Supabase Configuration
+
+[functions.site-api]
+verify_jwt = false

@@ -2,12 +2,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, x-api-key, content-type",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
 };
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
+const ADMIN_API_KEY = Deno.env.get("ADMIN_API_KEY") || "";
 
 const adminManagedTables = {
   branches: "branches",
@@ -88,35 +90,67 @@ function getAdminClient() {
   });
 }
 
-async function assertAdmin(request: Request) {
-  const authHeader = request.headers.get("Authorization") || "";
-  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+async function sendBookingNotificationEmail(booking: Record<string, unknown>, branchEmail: string) {
+  if (!branchEmail || !resendApiKey) {
+    console.warn("Skipping email notification: missing branch email or Resend API key");
+    return;
+  }
 
-  if (!token) {
-    throw new Error("Missing bearer token.");
+  try {
+    const emailContent = `
+New Booking Notification
+
+Branch: ${booking.branch_name || "Unknown"}
+Customer Name: ${booking.name || "N/A"}
+Phone: ${booking.phone || "N/A"}
+Service: ${booking.service || "N/A"}
+Date: ${booking.booking_date || "N/A"}
+Time: ${booking.booking_time || "N/A"}
+Female Therapists: ${booking.female_therapist_count || 0}
+Male Therapists: ${booking.male_therapist_count || 0}
+Estimated Cost: ${booking.estimated_service_cost || 0}
+Taxi Fare: ${booking.taxi_fare || 0}
+Total Estimate: ${booking.total_estimate || 0}
+Special Notes: ${booking.notes || "None"}
+
+Please log in to your admin dashboard to view and manage this booking.
+    `.trim();
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${resendApiKey}`
+      },
+      body: JSON.stringify({
+        from: "noreply@sensual-massage.com",
+        to: branchEmail,
+        subject: `New Booking: ${booking.name} - ${booking.service}`,
+        text: emailContent
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Failed to send booking email:", response.status, errorText);
+    }
+  } catch (error) {
+    console.error("Error sending booking email:", error);
+  }
+}
+
+async function assertAdmin(request: Request) {
+  const apiKey = request.headers.get("x-api-key") || request.headers.get("apikey") || "";
+
+  if (!ADMIN_API_KEY) {
+    throw new Error("Missing ADMIN_API_KEY configuration.");
+  }
+  if (!apiKey || apiKey.trim() !== ADMIN_API_KEY) {
+    throw new Error("Unauthorized: Invalid API key.");
   }
 
   const adminClient = getAdminClient();
-  const {
-    data: { user },
-    error
-  } = await adminClient.auth.getUser(token);
-
-  if (error || !user) {
-    throw new Error("Invalid user session.");
-  }
-
-  const { data: profile, error: profileError } = await adminClient
-    .from("admin_profiles")
-    .select("user_id, is_active")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (profileError || !profile || !profile.is_active) {
-    throw new Error("Admin access denied.");
-  }
-
-  return { adminClient, user };
+  return { adminClient };
 }
 
 async function getSiteData() {
@@ -204,19 +238,22 @@ async function createBooking(payload: Record<string, unknown>) {
   const branchName = String(payload.branch || "").trim();
 
   let branchId: string | null = null;
+  let branchEmail = "";
   if (branchName) {
     const { data: branch } = await adminClient
       .from("branches")
-      .select("id")
+      .select("id, email")
       .eq("name", branchName)
       .maybeSingle();
     branchId = branch?.id || null;
+    branchEmail = branch?.email || "";
   }
 
-  const { error } = await adminClient.from("bookings").insert({
+  const bookingData = {
     branch_id: branchId,
     branch_name: branchName,
     name: String(payload.name || "").trim(),
+    email: String(payload.email || "").trim(),
     phone: String(payload.phone || "").trim(),
     service: String(payload.service || "").trim(),
     female_therapist_count: Number(payload.female_therapist_count || 0),
@@ -231,10 +268,17 @@ async function createBooking(payload: Record<string, unknown>) {
     agreement: String(payload.agreement || "No").trim() || "No",
     notes: String(payload.notes || "").trim(),
     status: "New"
-  });
+  };
+
+  const { error } = await adminClient.from("bookings").insert(bookingData);
 
   if (error) {
     throw error;
+  }
+
+  // Send email notification to branch
+  if (branchEmail) {
+    await sendBookingNotificationEmail(bookingData, branchEmail);
   }
 
   return { message: "Booking saved successfully." };
@@ -373,6 +417,7 @@ async function getAdminData(request: Request) {
       branch: row.branch_name || (row.branch_id ? branchById.get(row.branch_id) || "" : ""),
       timestamp: row.timestamp || row.created_at || "",
       name: row.name || "",
+      email: row.email || "",
       phone: row.phone || "",
       service: row.service || "",
       female_therapist_count: String(row.female_therapist_count ?? 0),

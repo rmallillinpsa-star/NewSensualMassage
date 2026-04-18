@@ -86,7 +86,11 @@ function renderPublicDataError(error) {
 }
 
 async function fetchSiteData() {
-  const response = await fetch(`${apiBaseUrl}?action=siteData`);
+  const response = await fetch(`${apiBaseUrl}?action=siteData`, {
+    headers: {
+      apikey: siteConfig.supabaseAnonKey || ""
+    }
+  });
 
   if (!response.ok) {
     throw new Error("Failed to fetch site data.");
@@ -1073,7 +1077,8 @@ function initBookingForm(siteData) {
         const response = await fetch(bookingEndpoint, {
           method: "POST",
           headers: {
-            "Content-Type": "text/plain;charset=utf-8"
+            "Content-Type": "application/json",
+            apikey: siteConfig.supabaseAnonKey || ""
           },
           body: JSON.stringify({
             action: "createBooking",

@@ -377,7 +377,11 @@
         if (!apiBaseUrl) return;
 
         try {
-          const response = await fetch(apiBaseUrl + "?action=siteData");
+          const response = await fetch(apiBaseUrl + "?action=siteData", {
+            headers: {
+              apikey: (window.SITE_CONFIG && window.SITE_CONFIG.supabaseAnonKey) || ""
+            }
+          });
           const result = await response.json();
           if (!response.ok || !result.success) return;
 
