@@ -918,6 +918,10 @@ async function saveAdminSheet(sheetKey) {
       throw new Error(result.message || 'Save failed');
     }
 
+    if (result && typeof result === 'object' && result.success === false) {
+      throw new Error(result.message || 'Save failed');
+    }
+
     await loadAdminData();
     activateAdminPanel(sheetKey);
     const refreshedStatus = document.querySelector(`[data-admin-status="${sheetKey}"]`);

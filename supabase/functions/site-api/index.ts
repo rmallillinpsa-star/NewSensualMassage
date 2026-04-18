@@ -437,8 +437,9 @@ async function saveBranches(adminClient: ReturnType<typeof getAdminClient>, rows
 }
 
 async function saveServices(adminClient: ReturnType<typeof getAdminClient>, rows: Record<string, unknown>[]) {
+  const { branchIdByName } = await buildBranchMaps(adminClient);
   const mappedRows = rows.map((row, index) => ({
-    branch_id: row.branch || null,
+    branch_id: branchIdByName.get(normalizeText(row.branch)) || null,
     name: normalizeText(row.name),
     description: normalizeText(row.description),
     duration: normalizeText(row.duration),
@@ -453,8 +454,9 @@ async function saveServices(adminClient: ReturnType<typeof getAdminClient>, rows
 }
 
 async function saveStaff(adminClient: ReturnType<typeof getAdminClient>, rows: Record<string, unknown>[]) {
+  const { branchIdByName } = await buildBranchMaps(adminClient);
   const staffRows = rows.map((row, index) => ({
-    branch_id: row.branch || null,
+    branch_id: branchIdByName.get(normalizeText(row.branch)) || null,
     name: normalizeText(row.name),
     slug: normalizeSlug(row.slug || row.name || `staff-${index + 1}`),
     gender: normalizeText(row.gender) === "Male" ? "Male" : "Female",
@@ -492,8 +494,9 @@ async function saveStaff(adminClient: ReturnType<typeof getAdminClient>, rows: R
 }
 
 async function savePromos(adminClient: ReturnType<typeof getAdminClient>, rows: Record<string, unknown>[]) {
+  const { branchIdByName } = await buildBranchMaps(adminClient);
   const mappedRows = rows.map((row, index) => ({
-    branch_id: row.branch || null,
+    branch_id: branchIdByName.get(normalizeText(row.branch)) || null,
     title: normalizeText(row.title),
     description: normalizeText(row.description),
     label: normalizeText(row.label),
@@ -505,8 +508,9 @@ async function savePromos(adminClient: ReturnType<typeof getAdminClient>, rows: 
 }
 
 async function saveSlides(adminClient: ReturnType<typeof getAdminClient>, rows: Record<string, unknown>[]) {
+  const { branchIdByName } = await buildBranchMaps(adminClient);
   const mappedRows = rows.map((row, index) => ({
-    branch_id: row.branch || null,
+    branch_id: branchIdByName.get(normalizeText(row.branch)) || null,
     title: normalizeText(row.title),
     subtitle: normalizeText(row.subtitle),
     image_url: normalizeText(row.image_url),
@@ -522,8 +526,9 @@ async function saveSlides(adminClient: ReturnType<typeof getAdminClient>, rows: 
 }
 
 async function saveHomeSections(adminClient: ReturnType<typeof getAdminClient>, rows: Record<string, unknown>[]) {
+  const { branchIdByName } = await buildBranchMaps(adminClient);
   const mappedRows = rows.map((row, index) => ({
-    branch_id: row.branch || null,
+    branch_id: branchIdByName.get(normalizeText(row.branch)) || null,
     section_key: normalizeText(row.section_key),
     title: normalizeText(row.title),
     description: normalizeText(row.description),
@@ -539,8 +544,9 @@ async function saveHomeSections(adminClient: ReturnType<typeof getAdminClient>, 
 }
 
 async function saveRates(adminClient: ReturnType<typeof getAdminClient>, rows: Record<string, unknown>[]) {
+  const { branchIdByName } = await buildBranchMaps(adminClient);
   const mappedRows = rows.map((row, index) => ({
-    branch_id: row.branch || null,
+    branch_id: branchIdByName.get(normalizeText(row.branch)) || null,
     key: normalizeText(row.key),
     label: normalizeText(row.label),
     amount: parseNumberValue(row.amount),
