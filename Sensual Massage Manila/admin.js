@@ -816,7 +816,7 @@ async function uploadFilesToStorage(files, sheetKey, fieldKey) {
     const safeName = sanitizeFileName(file.name || "upload");
     const filePath = `admin/${sheetKey}/${fieldKey}/${Date.now()}-${createRandomId()}-${safeName}${extension}`;
 
-    const { error } = await client.storage.from("site-media").upload(filePath, file, {
+    const { error } = await supabase.storage.from("site-media").upload(filePath, file, {
       cacheControl: "3600",
       upsert: false
     });
@@ -825,7 +825,7 @@ async function uploadFilesToStorage(files, sheetKey, fieldKey) {
       throw new Error(error.message || "Upload failed.");
     }
 
-    const { data } = client.storage.from("site-media").getPublicUrl(filePath);
+    const { data } = supabase.storage.from("site-media").getPublicUrl(filePath);
     uploadedUrls.push(String(data?.publicUrl || "").trim());
   }
 
