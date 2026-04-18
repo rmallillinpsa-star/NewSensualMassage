@@ -699,11 +699,11 @@ h3 {
 .qr-card-mini img,
 .qr-stack img {
   width: 100%;
-  max-width: 110px; /* smaller QR to better fit grid */
+  max-width: 90px; /* smaller QR to better fit grid */
   justify-self: center;
-  border-radius: 12px;
+  border-radius: 8px;
   background: #ffffff;
-  padding: 0.35rem;
+  padding: 0.25rem;
   box-shadow: var(--shadow);
   height: auto;
   display: block;
@@ -724,20 +724,21 @@ h3 {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 1.9rem;
-  height: 1.9rem;
+  width: 1.2rem;
+  height: 1.2rem;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: #ffffff;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
-  border: 2px solid #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  border: 1.5px solid #ffffff;
+  z-index: 10;
 }
 
 .qr-center-badge .inline-icon {
-  width: 0.95rem;
-  height: 0.95rem;
+  width: 0.6rem;
+  height: 0.6rem;
 }
 
 .qr-center-icon {
