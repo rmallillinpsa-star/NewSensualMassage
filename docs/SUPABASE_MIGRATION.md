@@ -49,6 +49,28 @@ That means you do not need three databases. You need one shared database, and ea
 - `.env.example`
 - `.gitignore`
 
+## Email Notifications Setup
+
+The system can send email notifications when new bookings are created. To enable this:
+
+1. **Sign up for Resend** (free tier available):
+   - Go to [resend.com](https://resend.com)
+   - Create an account and get your API key
+
+2. **Add environment variables to Supabase**:
+   ```
+   RESEND_API_KEY=your_resend_api_key_here
+   ADMIN_EMAIL=your_admin_email@example.com
+   ```
+
+3. **Verify your domain** (optional but recommended):
+   - In Resend dashboard, add and verify your domain
+   - Update the `from` email in the code to use your verified domain
+
+4. **Email will be sent automatically** when customers submit bookings through any of the three sites (Diamond, Elite, Manila).
+
+The email includes all booking details: customer info, service, therapists, costs, and booking ID.
+
 These are the starting structure for the migration.
 
 ## Supabase Dashboard Setup

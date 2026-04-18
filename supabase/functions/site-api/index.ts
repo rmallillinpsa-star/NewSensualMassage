@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "https://esm.sh/resend@3.2.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,6 +9,8 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
+const adminEmail = Deno.env.get("ADMIN_EMAIL") || "";
 
 const adminManagedTables = {
   branches: "branches",
@@ -213,7 +216,7 @@ async function createBooking(payload: Record<string, unknown>) {
     branchId = branch?.id || null;
   }
 
-  const { error } = await adminClient.from("bookings").insert({
+  const bookingData = {
     branch_id: branchId,
     branch_name: branchName,
     name: String(payload.name || "").trim(),
@@ -231,13 +234,63 @@ async function createBooking(payload: Record<string, unknown>) {
     agreement: String(payload.agreement || "No").trim() || "No",
     notes: String(payload.notes || "").trim(),
     status: "New"
-  });
+  };
+
+  const { data, error } = await adminClient.from("bookings").insert(bookingData).select().single();
 
   if (error) {
     throw error;
   }
 
+  // Send email notification
+  try {
+    await sendBookingEmail(data);
+  } catch (emailError) {
+    console.warn("Failed to send booking email:", emailError);
+    // Don't fail the booking if email fails
+  }
+
   return { message: "Booking saved successfully." };
+}
+
+async function sendBookingEmail(booking: any) {
+  if (!resendApiKey || !adminEmail) {
+    console.warn("Email not configured - missing RESEND_API_KEY or ADMIN_EMAIL");
+    return;
+  }
+
+  const resend = new Resend(resendApiKey);
+
+  const emailHtml = `
+    <h2>New Booking Received</h2>
+    <p><strong>Branch:</strong> ${booking.branch_name || 'N/A'}</p>
+    <p><strong>Customer Name:</strong> ${booking.name}</p>
+    <p><strong>Phone:</strong> ${booking.phone || 'N/A'}</p>
+    <p><strong>Service:</strong> ${booking.service || 'N/A'}</p>
+    <p><strong>Date:</strong> ${booking.booking_date || 'N/A'}</p>
+    <p><strong>Time:</strong> ${booking.booking_time || 'N/A'}</p>
+    <p><strong>Female Therapists:</strong> ${booking.female_therapist_count} (${booking.female_therapists || 'N/A'})</p>
+    <p><strong>Male Therapists:</strong> ${booking.male_therapist_count} (${booking.male_therapists || 'N/A'})</p>
+    <p><strong>Service Cost:</strong> PHP ${booking.estimated_service_cost}</p>
+    <p><strong>Taxi Fare:</strong> PHP ${booking.taxi_fare}</p>
+    <p><strong>Total Estimate:</strong> PHP ${booking.total_estimate}</p>
+    <p><strong>Agreement:</strong> ${booking.agreement}</p>
+    <p><strong>Notes:</strong> ${booking.notes || 'None'}</p>
+    <p><strong>Status:</strong> ${booking.status}</p>
+    <p><strong>Booking ID:</strong> ${booking.id}</p>
+    <p><strong>Timestamp:</strong> ${new Date(booking.created_at).toLocaleString()}</p>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: "Sensual Massage <noreply@sensualmassage.com>",
+    to: adminEmail,
+    subject: `New Booking: ${booking.name} - ${booking.branch_name || 'Branch'}`,
+    html: emailHtml,
+  });
+
+  if (error) {
+    throw error;
+  }
 }
 
 async function getAdminData(request: Request) {
