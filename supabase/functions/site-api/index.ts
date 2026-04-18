@@ -9,6 +9,7 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+const adminApiKey = Deno.env.get("ADMIN_API_KEY") || "";
 
 const adminManagedTables = {
   branches: "branches",
@@ -90,43 +91,17 @@ function getAdminClient() {
 }
 
 async function assertAdmin(request: Request) {
-  const authHeader = request.headers.get("Authorization") || "";
-  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-
-  if (!token) {
-    throw new Error("Missing bearer token.");
+  if (!adminApiKey) {
+    throw new Error("Admin API key is not configured.");
   }
 
-  // Manually decode JWT payload without signature verification
-  let userId: string;
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      throw new Error("Invalid JWT format");
-    }
-
-    // Decode the payload (second part)
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-    userId = payload.sub;
-    if (!userId) {
-      throw new Error("Invalid token: no user ID");
-    }
-  } catch (error) {
-    throw new Error("Invalid JWT token");
-  }
-
-  const adminClient = getAdminClient();
-  const { data: profile, error: profileError } = await adminClient
-    .from("admin_profiles")
-    .select("user_id, is_active")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (profileError || !profile || !profile.is_active) {
+  const apiKeyHeader = request.headers.get("x-api-key") || request.headers.get("apikey") || "";
+  if (apiKeyHeader.trim() !== adminApiKey) {
     throw new Error("Admin access denied.");
   }
 
-  return { adminClient, user: { id: userId } };
+  const adminClient = getAdminClient();
+  return { adminClient, user: { id: "admin" } };
 }
 
 async function getSiteData() {
