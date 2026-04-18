@@ -727,13 +727,14 @@ h3 {
   width: 1.2rem;
   height: 1.2rem;
   border-radius: 50%;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   background: #ffffff;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
   border: 1.5px solid #ffffff;
   z-index: 10;
+  overflow: hidden;
 }
 
 .qr-center-badge .inline-icon {
