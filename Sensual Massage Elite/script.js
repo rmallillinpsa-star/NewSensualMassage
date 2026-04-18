@@ -1582,7 +1582,6 @@ function renderBranchCard(branch) {
   return `
     <article class="branch-card branch-card-rich">
       <div class="branch-card-body">
-        ${logoUrl ? `<img class="branch-logo-image" src="${escapeAttribute(logoUrl)}" alt="${escapeAttribute(name)}">` : ""}
         <p class="contact-label">${escapeHtml(name)}</p>
         ${address ? `<p>${escapeHtml(address)}</p>` : ""}
         ${phone ? `<p>${escapeHtml(phone)}</p>` : ""}
