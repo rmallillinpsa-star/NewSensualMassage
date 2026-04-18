@@ -904,6 +904,19 @@ async function saveAdminSheet(sheetKey) {
     return item;
   }).filter((row) => definition.fields.some((field) => String(row[field.key] || "").trim() !== ""));
 
+  // Validate required fields
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    for (const field of definition.fields) {
+      if (field.required && !String(row[field.key] || "").trim()) {
+        status.textContent = `Error: Row ${i + 1} - "${field.label}" is required.`;
+        status.classList.remove("is-success");
+        status.classList.add("is-error");
+        return;
+      }
+    }
+  }
+
   status.textContent = "Saving...";
   status.classList.remove("is-error", "is-success");
 
