@@ -5,6 +5,19 @@ const adminSupabaseAnonKey = adminConfig.supabaseAnonKey || "";
 const adminSessionStorageKey = "supabaseAdminSession";
 let supabaseClient = null;
 
+async function withTimeout(promise, ms, timeoutMessage) {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), ms);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 const adminSheetDefinitions = {
   branches: {
     label: "Branches",
@@ -238,10 +251,14 @@ async function handleAdminLogin(event) {
       throw new Error("Supabase admin login is not configured yet.");
     }
 
-    const { data, error } = await client.auth.signInWithPassword({
-      email: String(payload.email || "").trim(),
-      password: String(payload.password || "")
-    });
+    const { data, error } = await withTimeout(
+      client.auth.signInWithPassword({
+        email: String(payload.email || "").trim(),
+        password: String(payload.password || "")
+      }),
+      15000,
+      "Login request timed out. Check your internet connection and try again."
+    );
 
     if (error || !data.session) {
       throw new Error(error?.message || "Login failed.");
@@ -1047,11 +1064,15 @@ async function postAdminAction(payload) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(adminApiBaseUrl, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload)
-  });
+  const response = await withTimeout(
+    fetch(adminApiBaseUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload)
+    }),
+    20000,
+    "Admin API request timed out. Check your network connection."
+  );
 
   const result = await response.json();
 
