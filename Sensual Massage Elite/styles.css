@@ -1967,7 +1967,7 @@ body[data-selected-branch] .therapist-profile-grid .therapist-body h3 {
   }
 
   .branch-logo-image {
-    max-width: 8.5rem;
-    height: 8.5rem;
+    max-width: 3rem;
+    height: 3rem;
   }
 }
