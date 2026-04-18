@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { decodeJwt } from "https://esm.sh/jose@4.14.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -98,11 +97,17 @@ async function assertAdmin(request: Request) {
     throw new Error("Missing bearer token.");
   }
 
-  // Decode JWT to get user ID without verifying signature
+  // Manually decode JWT payload without signature verification
   let userId: string;
   try {
-    const payload = decodeJwt(token);
-    userId = payload.sub as string;
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      throw new Error("Invalid JWT format");
+    }
+
+    // Decode the payload (second part)
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    userId = payload.sub;
     if (!userId) {
       throw new Error("Invalid token: no user ID");
     }
