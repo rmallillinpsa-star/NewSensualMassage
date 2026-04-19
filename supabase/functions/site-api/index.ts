@@ -287,25 +287,39 @@ async function createBooking(payload: Record<string, unknown>) {
 async function getAdminData(request: Request) {
   const { adminClient } = await assertAdmin(request);
 
-  const [branches, services, staff, staffImages, promos, slides, homeSections, rates, settings, bookings, adminProfiles] = await Promise.all([
-    adminClient.from("branches").select("*").order("sort_order").order("name"),
-    adminClient.from("services").select("*").order("sort_order").order("name"),
-    adminClient.from("staff").select("*").order("sort_order").order("name"),
-    adminClient.from("staff_images").select("*").order("sort_order"),
-    adminClient.from("promos").select("*").order("sort_order").order("title"),
-    adminClient.from("slides").select("*").order("sort_order"),
-    adminClient.from("home_sections").select("*").order("sort_order"),
-    adminClient.from("rates").select("*").order("sort_order").order("label"),
-    adminClient.from("settings").select("*").order("key"),
-    adminClient.from("bookings").select("*").order("timestamp", { ascending: false }),
-    adminClient.from("admin_profiles").select("user_id, email, display_name, is_active").order("email")
-  ]);
+  // Query each table individually with error handling
+  const branches = await adminClient.from("branches").select("*").order("sort_order").order("name");
+  if (branches.error) throw new Error(`Branches query failed: ${branches.error.message}`);
 
-  const queryResults = [branches, services, staff, staffImages, promos, slides, homeSections, rates, settings, bookings, adminProfiles];
-  const failed = queryResults.find((result) => result.error);
-  if (failed?.error) {
-    throw failed.error;
-  }
+  const services = await adminClient.from("services").select("*").order("sort_order").order("name");
+  if (services.error) throw new Error(`Services query failed: ${services.error.message}`);
+
+  const staff = await adminClient.from("staff").select("*").order("sort_order").order("name");
+  if (staff.error) throw new Error(`Staff query failed: ${staff.error.message}`);
+
+  const staffImages = await adminClient.from("staff_images").select("*").order("sort_order");
+  if (staffImages.error) throw new Error(`Staff images query failed: ${staffImages.error.message}`);
+
+  const promos = await adminClient.from("promos").select("*").order("sort_order").order("title");
+  if (promos.error) throw new Error(`Promos query failed: ${promos.error.message}`);
+
+  const slides = await adminClient.from("slides").select("*").order("sort_order");
+  if (slides.error) throw new Error(`Slides query failed: ${slides.error.message}`);
+
+  const homeSections = await adminClient.from("home_sections").select("*").order("sort_order");
+  if (homeSections.error) throw new Error(`Home sections query failed: ${homeSections.error.message}`);
+
+  const rates = await adminClient.from("rates").select("*").order("sort_order").order("label");
+  if (rates.error) throw new Error(`Rates query failed: ${rates.error.message}`);
+
+  const settings = await adminClient.from("settings").select("*").order("key");
+  if (settings.error) throw new Error(`Settings query failed: ${settings.error.message}`);
+
+  const bookings = await adminClient.from("bookings").select("*").order("timestamp", { ascending: false });
+  if (bookings.error) throw new Error(`Bookings query failed: ${bookings.error.message}`);
+
+  const adminProfiles = await adminClient.from("admin_profiles").select("user_id, email, display_name, is_active").order("email");
+  if (adminProfiles.error) throw new Error(`Admin profiles query failed: ${adminProfiles.error.message}`);
 
   const branchById = new Map((branches.data || []).map((row) => [row.id, row.name]));
   const groupedImages = new Map<string, string[]>();
